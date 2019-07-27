@@ -78,11 +78,21 @@ if [ -f "$name.sha256sum" ]; then
                                                         if [ $? = '0' ]; then
                                                                 echo; echo "¡Firma GPG verificada! Coincidente."
                                                                 echo "Parece que los archivos no ha sido modificados.";
-                                                                read -p "¿Desea descrifrar el archivo? [S/n]: " ask
-                                                                while [[ "$ask" != "s" && "$ask" != "si" && "$ask" != "n" && "$ask" != "no" ]]; do
-                                                                        echo; echo "La respuesta $ask no es válida."
-                                                                        read -p "¿Desea descrifrar el archivo? [S/n]: " ask
-                                                                done
+                                                                message="¿Desea descifrar el archivo? [S/n] (Si por defecto): "
+                                                                read -t 5 -p "$message" ask
+
+                                                                if [ -n "$ask" ]; then
+                                                                        while [[ "$ask" != "s" && "$ask" != "si" && "$ask" \
+                                                                                != "n" && "$ask" != "no" ]]; do
+                                                                                echo; echo "La respuesta $ask no es válida."
+                                                                                read -t 5 -p "$message" ask
+                                                                                if [ -z "$ask" ]; then
+                                                                                        echo; ask="s"
+                                                                                fi
+                                                                        done
+                                                                else
+                                                                        echo; ask="s"
+                                                                fi
 
                                                                 if [ "$ask" = "s" ]; then
                                                                         echo; echo "Descifrando archivo, por favor espere..."

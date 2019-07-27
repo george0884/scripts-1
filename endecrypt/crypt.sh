@@ -38,9 +38,9 @@ if [ -z $file ]; then
         done
 fi
 
-read -p "Introduzca el nombre que tendrán los archivos finales ($file por defecto): " name_final
+read -t 5 -p "Introduzca el nombre que tendrán los archivos finales ($file por defecto): " name_final
 if [ -z "$name_final" ]; then
-        name_final=$file
+        echo; name_final=$file
 fi
 
 name_final+=".gpg"
