@@ -22,11 +22,12 @@ elif [[ "$1" = "-h" || "$1" = "--help" ]]; then
         help
         exit 0
 else
-        echo; echo "Las opciones \"$@\" son innecesarias, no se tomarán en cuenta."; echo
+        echo; echo "Las opciones \"$@\" son innecesarias, no se tomarán en cuenta."
+        echo; sleep 1
 fi
 
 if [ -z "$name" ]; then
-        read -r -p "Introduzca el nombre del archivo: " name
+        read -p "Introduzca el nombre del archivo: " name
         while [ ! -f "$name" ]; do
                 if [ -d "$name" ]; then
                         echo; echo "Lo que ha indicado es un directorio. Por favor,"
@@ -40,6 +41,7 @@ fi
 
 # Verify sha256
 echo; echo "Verificando suma de comprobación: sha256, por favor, espere..."
+sleep 1
 if [ -f "$name.sha256sum" ]; then
         sum1="$(cat "$name.sha256sum")"
         tmp="$(sha256sum "$name")"
@@ -49,6 +51,7 @@ if [ -f "$name.sha256sum" ]; then
                 echo; echo "¡Sha256 verificado! Coincidente."
                 # Verify sha512
                 echo; echo "Verificando suma de comprobación: sha512, por favor, espere..."
+                sleep 1
                 if [ -f "$name.sha512sum" ]; then
                         sum1="$(cat "$name.sha512sum")"
                         tmp="$(sha512sum "$name")"
@@ -58,6 +61,7 @@ if [ -f "$name.sha256sum" ]; then
                                 echo; echo "¡Sha512 verificado! Coincidente."
                                 # Verify MD5sum
                                 echo; echo "Verificando suma de comprobación: md5, por favor, espere..."
+                                sleep 1
                                 if [ -f "$name.md5sum" ]; then
                                         sum1="$(cat "$name.md5sum")"
                                         tmp="$(md5sum "$name")"
@@ -68,6 +72,7 @@ if [ -f "$name.sha256sum" ]; then
                                                 unset sum1; unset sum2
                                                 # Verify GPG Sig
                                                 echo; echo "Verificando firma GPG, por favor, espere..."
+                                                sleep 1
                                                 if [ -f "$name.sig" ]; then
                                                         gpg --verify "$name.sig" "$name"
                                                         if [ $? = '0' ]; then
@@ -80,6 +85,8 @@ if [ -f "$name.sha256sum" ]; then
                                                                 done
 
                                                                 if [ "$ask" = "s" ]; then
+                                                                        echo; echo "Descifrando archivo, por favor espere..."
+                                                                        sleep 1
                                                                         gpg -o "$name-decrypt" -d "$name"
                                                                         if [ $? -eq 0 ]; then
                                                                                 echo; echo "El archivo ha sido descrifrado."; echo

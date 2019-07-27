@@ -48,6 +48,7 @@ name_dir="Product"
 
 if [[ -d "$name_dir" ]]; then
         echo; echo "El directorio de salida ya existe. Utilizándolo..."
+        sleep 1
 elif [[ -f "$name_dir" ]]; then
         name_dir+="-dir"
         mkdir "$name_dir"
@@ -73,25 +74,30 @@ else
 fi
 
 echo; echo "Cifrando archivo..."; echo
+sleep 1
 gpg -o $name_final --symmetric $file
 if [ $? -eq 0 ]; then
         echo "Cifrado de archivo finalizado."
         echo "Creando suma de comprobación: sha256...";
+        sleep 1
         tmp="$(sha256sum $name_final)"
         echo "${tmp:0:64}" > $name_final.sha256sum
         if [ $? -eq 0 ]; then
                 echo; echo "Suma de comprobación: sha256 creada con éxito."
                 echo "Creando suma de comprobación: sha512..."
+                sleep 1
                 tmp="$(sha512sum $name_final)"
                 echo "${tmp:0:128}" > $name_final.sha512sum
                 if [ $? -eq 0 ]; then
                         echo; echo "Suma de comprobración: sha512 creada con éxito."
                         echo "Creando suma de comprobación: MD5..."
+                        sleep 1
                         tmp="$(md5sum $name_final)"
                         echo "${tmp:0:32}" > $name_final.md5sum
                         if [ $? -eq 0 ]; then
                                 echo; echo "Suma de comprobación: md5 creada con éxito."
                                 echo "Creando firma GPG..."
+                                sleep 1
                                 gpg -o $name_final.sig -abq $name_final
                                 if [ $? -eq 0 ]; then
                                         echo; echo "Todos los trabajos han sido finalizados con éxito."; echo
