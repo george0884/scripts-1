@@ -15,8 +15,18 @@
 # a la Free Software Foundation, Inc., en 675 Mass Ave,
 # Cambridge, MA 02139, EEUU.
 
+# Variables
+sources="/usr/src/linux"
 message="¿Desea tener soporte para"
 answer="La respuesta introducida no es válida."
+old_sources_path="$sources-$(uname -r)"
+old_modules_path="/lib/modules/$(uname -r)"
+boot="/boot"
+old_boot_config="$boot/config-$(uname -r)"
+old_initramfs="$boot/initramfs-genkernel-$(uname -m)-$(uname -r)"
+old_system_map="$boot/System.map-$(uname -r)"
+old_vmlinuz="$boot/vmlinuz-$(uname -r)"
+
 function welcome()
 {
         echo "##############################################################################################"
@@ -26,20 +36,20 @@ function welcome()
 
 function verify()
 {
-        cd /usr/src/linux/
+        cd "$sources"
         echo
         if [ ! -f ".config" ]; then
                 echo "Archivo de configuración no encontrado."; echo
                 sleep 2
-                if [ -f "/usr/src/linux-$(uname -r)/.config" ]; then
+                if [ -f "$sources-$(uname -r)/.config" ]; then
                         echo "Archivo de configuración anterior encontrado. Copiando a las nuevas fuentes..."
                         sleep 2
-                        cp /usr/src/linux-$(uname -r)/.config /usr/src/linux/
+                        cp "$sources-$(uname -r)/.config" "$sources"
                         if [ $? != '0' ]; then
-                                echo; echo "No se ha encontrado el archivo de configuración para compilar las fuentes y no se ha podido"
+                                echo "No se ha encontrado el archivo de configuración para compilar las fuentes y no se ha podido"
                                 echo "copiar desde las fuentes anteriores. Por favor, verifique la existencia de este archivo o"
-                                echo "proceda a realizar la configuración correspondiente, e.g (make menuconfig/gconfig, etc.)"
-                                status=1
+                                echo "proceda a realizar la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)"
+                                echo; status=1
                         else
                                 echo; echo "Sincronizando configuración anterior..."; echo
                                 sleep 2
@@ -52,10 +62,10 @@ function verify()
                                 fi
                         fi
                 else
-                        echo; echo "No se ha encontrado el archivo de configuración para compilar las fuentes en: /usr/src/linux/ o"
-                        echo "/usr/src/linux-$(uname -r). Por favor, verifique la existencia de este archivo o proceda a realizar"
-                        echo "la configuración correspondiente, e.g (make menuconfig/gconfig, etc.)"
-                        status=1
+                        echo "No se ha encontrado el archivo de configuración para compilar las fuentes en: $sources o"
+                        echo "$sources-$(uname -r). Por favor, verifique la existencia de este archivo o proceda a realizar"
+                        echo "la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)"
+                        echo; status=1
                 fi
         else
                 echo "Archivo de configuración encontrado."
@@ -96,7 +106,7 @@ function get_info()
         # Ask by support for LVM
         echo -n "$message LVM? [S/n]: "
         read lvm
-        while [[ $lvm != 's' && $lvm != 'si' && $lvm != 'n' && $lvm != 'no' ]]; do
+        while [[ "$lvm" != 's' && "$lvm" != 'si' && "$lvm" != 'n' && "$lvm" != 'no' ]]; do
                 echo "$answer"; echo -n "$message LVM? [S/n]: "
                 read lvm
         done
@@ -110,13 +120,13 @@ function get_info()
                 echo; echo "La cantidad de hilos que ha decidido utilizar es: $threads y su procesador"
                 echo -n "cuenta con sólo $((cores*2)). Esto no es recomendable. ¿Desea continuar con esta configuración? [S/n]: "
                 read confirm
-                while [[ $confirm != 's' && $confirm != 'si' && $confirm != 'n' && $confirm != 'no' ]]; do
+                while [[ "$confirm" != 's' && "$confirm" != 'si' && "$confirm" != 'n' && "$confirm" != 'no' ]]; do
                         echo; echo "La respuesta introducida no es válida."
                         echo -n "¿Desea continuar con esta configuración? [S/n]: "
                         read confirm
                 done
 
-                if [[ $confirm = 's' || $confirm = 'si' ]]; then
+                if [[ "$confirm" = 's' || "$confirm" = 'si' ]]; then
                         echo; echo "Continuando con una configuración no recomendada."
                         sleep 2
                         break
@@ -132,7 +142,7 @@ function get_info()
         fi
 }
 
-if [ $USER = 'root' ]; then
+if [ "$USER" = 'root' ]; then
         clear
         # Get information to work
         welcome
@@ -143,13 +153,13 @@ if [ $USER = 'root' ]; then
                 echo; echo "Bien. Ya tengo los datos necesarios para trabajar."
                 echo -n "Trabajando con las opciones: "
 
-                if [[ $luks = 's' || $luks = 'si' ]]; then
+                if [[ "$luks" = 's' || "$luks" = 'si' ]]; then
                         echo -n "LUKS = Sí, "
                 else
                         echo -n "LUKS = No, "
                 fi
 
-                if [[ $lvm = 's' || $lvm = 'si' ]]; then
+                if [[ "$lvm" = 's' || "$lvm" = 'si' ]]; then
                         echo -n "LVM = Sí, "
                 else
                         echo -n "LVM = No, "
@@ -159,8 +169,8 @@ if [ $USER = 'root' ]; then
                 echo "Entrando en el directorio..."; echo
                 sleep 2
 
-                cd /usr/src/linux/
-                if [ $? = '0' ]; then
+                cd "$sources"
+                if [ $? -eq 0 ]; then
                         echo "La compilación del núcleo iniciará en 5 segundos. Puede presionar (CTRL + C) para cancelar esto."
                         echo -n "("
                         for ((i=5; i>=1; i--)); do
@@ -173,94 +183,186 @@ if [ $USER = 'root' ]; then
                         done
 
                         make -j$threads
-                        if [ $? = '0' ]; then
+                        if [ $? -eq 0 ]; then
                                 echo; echo "Compilación finalizada. Instalando módulos..."; echo
                                 sleep 2
                                 make modules_install
-                                if [ $? = '0' ]; then
+                                if [ $? -eq 0 ]; then
                                         echo; echo "Instalación de módulos finalizada. Instalando núcleo..."; echo; sleep 2
                                         make install
-                                        if [ $? = '0' ]; then
+                                        if [ $? -eq 0 ]; then
                                                 echo; echo "Instalación del núcleo finalizada. Generando initramfs..."; echo; sleep 2
-                                                if [[ $lvm = 's' || $lvm = 'si' && $luks = 's' || $luks = 'si' ]]; then
+                                                if [[ "$lvm" = 's' || "$lvm" = 'si' && "$luks" = 's' || "$luks" = 'si' ]]; then
                                                         genkernel --lvm --luks --install initramfs
                                                         if [ $? = '0' ]; then
-                                                                echo; echo -n "Generación de initramfs finalizada."
+                                                                echo; echo -n "Generación de initramfs finalizada. "
                                                                 echo -n "(Re)generando archivo de configuración de GRUB..."; echo
                                                                 sleep 2
                                                                 grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? = '0' ]; then
+                                                                if [ $? -eq 0 ]; then
                                                                         echo; echo -n "Generación de archivo de configuración de "
-                                                                        echo "GRUB finalizada con éxito."
-                                                                        echo "¡Trabajo finalizado!"; echo; sleep 2
-
+                                                                        echo "GRUB finalizada con éxito."; sleep 2
                                                                 else
                                                                         echo; echo -n "Ha ocurrido un error en la (re)generación del archivo "
-                                                                        echo "de configuración de GRUB. Saliendo..."; sleep 2
+                                                                        echo "de configuración de GRUB. Saliendo..."; sleep 2; exit 1
                                                                 fi
                                                         else
                                                                 echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2
+                                                                sleep 2; exit 1
                                                         fi
-                                                elif [[ $lvm = 's' || $lvm = 'si' && $luks = 'n' || $luks = 'no' ]]; then
+                                                elif [[ "$lvm" = 's' || "$lvm" = 'si' && "$luks" = 'n' || "$luks" = 'no' ]]; then
                                                         genkernel --lvm --install initramfs
-                                                        if [ $? = '0' ]; then
+                                                        if [ $? -eq 0 ]; then
                                                                 echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
                                                                 echo "configuración de GRUB..."; sleep 2
                                                                 grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? = '0' ]; then
+                                                                if [ $? -eq 0 ]; then
                                                                         echo; echo -n "Generación de archivo de configuración de GRUB "
-                                                                        echo "finalizada con éxito. "; echo "¡Trabajo finalizado!"
-                                                                        echo; sleep 2
-
+                                                                        echo "finalizada con éxito. "; sleep 2
                                                                 else
                                                                         echo
                                                                         echo -n "Ha ocurrido un error en la (re)generación del archivo de "
-                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2
+                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
                                                                 fi
                                                         else
                                                                 echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2
+                                                                sleep 2; exit 1
                                                         fi
-                                                elif [[ $lvm = 'n' || $lvm = 'no' && $luks = 's' || $luks = 'si' ]]; then
+                                                elif [[ "$lvm" = 'n' || "$lvm" = 'no' && "$luks" = 's' || "$luks" = 'si' ]]; then
                                                         genkernel --luks --install initramfs
-                                                        if [ $? = '0' ]; then
+                                                        if [ $? -eq ]; then
                                                                 echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
                                                                 echo "configuración de GRUB..."; sleep 2
                                                                 grub-mkconfig -o /boot/grub/grub.cfg
                                                                 if [ $? = '0' ]; then
                                                                         echo; echo -n "Generación de archivo de configuración de GRUB "
-                                                                        echo "finalizada con éxito."
-                                                                        echo "¡Trabajo finalizado!"; echo; sleep 2
+                                                                        echo "finalizada con éxito."; sleep 2
 
                                                                 else
                                                                         echo; echo -n "Ha ocurrido un error en la (re)generación del archivo de "
-                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2
+                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
                                                                 fi
                                                         else
                                                                 echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2
+                                                                sleep 2; exit 1
                                                         fi
                                                 else
                                                         genkernel --install initramfs
-                                                        if [ $? = '0' ]; then
+                                                        if [ $? -eq 0 ]; then
                                                                 echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
                                                                 echo "configuración de GRUB..."; sleep 2
                                                                 grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? = '0' ]; then
+                                                                if [ $? -eq 0 ]; then
                                                                         echo; echo -n "Generación de archivo de configuración de GRUB "
-                                                                        echo "finalizada con éxito."
-                                                                        echo "¡Trabajo finalizado!"; echo; sleep 2
+                                                                        echo "finalizada con éxito."; sleep 2
 
                                                                 else
                                                                         echo; echo -n "Ha ocurrido un error en la (re)generación del archivo de "
-                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2
+                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
                                                                 fi
                                                         else
                                                                 echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2
+                                                                sleep 2; exit
                                                         fi
                                                 fi
+
+                                                c=0
+                                                dirs="$(ls -1 ${sources:0:${#sources}-5})"
+                                                name="${sources:${#sources}-5:${#sources}}"
+
+                                                for i in $dirs; do
+                                                        if [ "${i:0:5}" = "$name" ]; then
+                                                                ((c++))
+                                                        fi
+                                                done
+
+                                                if [ $c -gt 2 ]; then
+                                                        if [ -d "$old_sources_path" ]; then
+                                                                old_sources="s"
+                                                        fi
+
+                                                        if [ -d "$old_modules_path" ]; then
+                                                                old_modules="s"
+                                                        fi
+
+                                                        if [[ -f "$old_boot_config" && -f "$old_initramfs" \
+                                                                && -f "$old_system_map" && -f "$old_vmlinuz" ]]; then
+                                                                old_files="s"
+                                                        fi
+
+                                                        if [[ -n "$old_sources" && -n "$old_modules" && -n "$old_files" ]]; then
+                                                                ask_confirm="¿Desea eliminar los archivos y directorios de su núcleo antiguo?"
+                                                                echo; read -t 5 -p "$ask_confirm [S/n] (Sí por defecto): " confirm
+
+                                                                if [ -z "$confirm" ]; then
+                                                                        confirm="s"
+                                                                else
+                                                                        while [[ "$confirm" != "s" && "$confirm" != "si" \
+                                                                                && "$confirm" != "n" && "$confirm" != "no" ]]; do
+                                                                                echo; echo "La respuesta \"$confirm\" no es válida."
+                                                                                read -t 5 -p "$ask_confirm (No por defecto): "
+                                                                                if [ -z "$confirm" ]; then
+                                                                                        confirm="s"
+                                                                                fi
+                                                                        done
+                                                                fi
+
+                                                                if [[ "$confirm" = "s" || "$confirm" = "si" ]]; then
+                                                                        rm -rf "$old_sources_path" "$old_modules_path" "$old_boot_config" \
+                                                                                "$old_initramfs" "$old_system_map" "$old_vmlinuz"
+                                                                fi
+                                                       fi
+                                                fi
+
+                                                echo; echo "Eliminado archivos antiguos..."; echo
+                                                c=0
+                                                if [ -f "$old_boot_config.old" ]; then
+                                                        rm -f "$old_boot_config.old"
+                                                        if [ $? -eq 0 ]; then
+                                                                echo "Archivo: $old_boot_config.old eliminado."
+                                                                ((c++))
+                                                        else
+                                                                echo "No se pudo eliminar el archivo: $old_boot_config.old"
+                                                        fi
+                                                fi
+
+                                                if [ -f "$old_initramfs.old" ]; then
+                                                        rm -f "$old_initramfs.old"
+                                                        if [ $? -eq 0 ]; then
+                                                                echo "Archivo: $old_initramfs.old eliminado."
+                                                                ((c++))
+                                                        else
+                                                                echo "No se pudo eliminar el archivo: $old_initramfs.old"
+                                                        fi
+                                                fi
+
+                                                if [ -f "$old_system_map.old" ]; then
+                                                        rm -f "$old_system_map.old"
+                                                        if [ $? -eq 0 ]; then
+                                                                echo "Archivo: $old_system_map.old eliminado."
+                                                                ((c++))
+                                                        else
+                                                                echo "No se pudo eliminar el archivo: $old_system_map.old"
+                                                        fi
+                                                fi
+
+                                                if [ -f "$old_vmlinuz.old" ]; then
+                                                        rm -f "$old_vmlinuz.old"
+                                                        if [ $? -eq 0 ]; then
+                                                                echo "Archivo: $old_vmlinuz.old eliminado."
+                                                                ((c++))
+                                                        else
+                                                                echo "No se pudo eliminar el archivo: $old_vmlinuz.old"
+                                                        fi
+                                                fi
+
+                                                if [ $c -gt 0 ]; then
+                                                        echo "Los archivos antiguos han sido eliminados."
+                                                else
+                                                        echo "No se eliminaron los archivos antiguos."
+                                                fi
+
+                                                echo; echo "Trabajo finalizado."; echo
                                         else
                                                 echo; echo "Ha ocurrido un error en la instalación del núcleo."
                                                 echo "Saliendo..."; sleep 2
