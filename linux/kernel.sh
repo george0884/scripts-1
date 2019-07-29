@@ -19,6 +19,7 @@
 sources="/usr/src/linux"
 message="¿Desea tener soporte para"
 answer="La respuesta introducida no es válida."
+# Rutas
 old_sources_path="$sources-$(uname -r)"
 old_modules_path="/lib/modules/$(uname -r)"
 boot="/boot"
@@ -26,6 +27,10 @@ old_boot_config="$boot/config-$(uname -r)"
 old_initramfs="$boot/initramfs-genkernel-$(uname -m)-$(uname -r)"
 old_system_map="$boot/System.map-$(uname -r)"
 old_vmlinuz="$boot/vmlinuz-$(uname -r)"
+# Hilos
+tmp=$(cat /proc/cpuinfo | grep "cpu cores")
+tmp=${tmp:${#tmp}-2:${#tmp}}
+tmp=$((tmp*2))
 
 function welcome()
 {
@@ -37,104 +42,148 @@ function welcome()
 function verify()
 {
         cd "$sources"
-        echo
-        if [ ! -f ".config" ]; then
-                echo "Archivo de configuración no encontrado."; echo
-                sleep 2
-                if [ -f "$sources-$(uname -r)/.config" ]; then
-                        echo "Archivo de configuración anterior encontrado. Copiando a las nuevas fuentes..."
+        if [ $? -eq 0 ]; then
+                echo -e "\nBuscando archivo de configuración..."; sleep 2
+                if [ ! -f ".config" ]; then
+                        echo -e "\nArchivo de configuración no encontrado.";
+                        echo -e "Buscando en las fuentes antiguas..."
                         sleep 2
-                        cp "$sources-$(uname -r)/.config" "$sources"
-                        if [ $? != '0' ]; then
-                                echo "No se ha encontrado el archivo de configuración para compilar las fuentes y no se ha podido"
-                                echo "copiar desde las fuentes anteriores. Por favor, verifique la existencia de este archivo o"
-                                echo "proceda a realizar la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)"
-                                echo; status=1
-                        else
-                                echo; echo "Sincronizando configuración anterior..."; echo
+                        if [ -f "$old_sources_path/.config" ]; then
+                                echo "Archivo de configuración anterior encontrado. Copiando a las nuevas fuentes..."
                                 sleep 2
-                                make olddefconfig
-                                if [ $? = '0' ]; then
-                                        echo; echo "Sincronización realizada exitosamente."; echo
-                                        status=0
+                                cp "$old_sources_path/.config" "$sources"
+                                if [ $? -ne 0 ]; then
+                                        echo "No se ha podido copiar el archivo de configuración desde las fuentes anteriores."
+                                        echo "Por favor, verifique la existencia de este archivo o proceda a realizar la"
+                                        echo -e "configuración correspondiente, p.e (make menuconfig/gconfig, etc.)\n"
+                                        status=1
                                 else
-                                        echo; echo "Ha ocurrido un error al sincronizar las configuraciones anteriores con las nuevas."; echo
+                                        echo; echo "Sincronizando configuración anterior..."; echo
+                                        sleep 2
+                                        make olddefconfig
+                                        if [ $? -eq 0 ]; then
+                                                echo; echo "Sincronización realizada exitosamente."; echo
+                                                status=0
+                                        else
+                                                echo -e "\nHa ocurrido un error al sincronizar las configuraciones anteriores con las nuevas.\n"
+                                                status=1
+                                        fi
                                 fi
+                        else
+                                echo -e "\nNo se ha encontrado el archivo de configuración para compilar las fuentes en: $sources o"
+                                echo "$sources-$(uname -r). Por favor, verifique la existencia de este archivo o proceda a realizar"
+                                echo -e "la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)\n"
+                                echo "Le ofrezco dos opciones:"
+                                echo "1-Utilizar la herramienta Genkernel o"
+                                echo "2-Ofrecerme la ruta en la que pueda "
+                                echo "encontrar un archivo de configuración"
+                                echo "válido para compilar su núcleo. Por favor, elija"
+                                echo -e "con el número correspondiente a su elección.\n"
+                                g="1-Genkernel"
+                                d="2-Directorio"
+                                options=("$g" "$d")
+                                PS3=">>> Su elección: "
+                                select opt in ${options[@]}; do
+                                        if [ "$opt" = "$g" ]; then
+                                                echo -e "\nUtilizando la herramienta Genkernel..."
+                                                status=1
+                                                break
+                                        elif [ "$opt" = "$d" ]; then
+                                                while true; do
+                                                        echo -e "\nIntroduzca la ruta en la que puedo encontrar un archivo"
+                                                        read -p "de configuración válido: " path
+                                                        if [ -z "$path" ]; then
+                                                                echo -e "\nNo ha introducido nada.\n"
+                                                        elif [ ! -d "$path" ]; then
+                                                                echo -en "\nEl directorio: \"$path\" no existe.\n"
+                                                        else
+                                                                if [ "${path:${#path}-1}" != "/" ]; then
+                                                                        path+="/"
+                                                                fi
+
+                                                                dirs="$(ls -a1 "$path")"
+                                                                for i in $dirs; do
+                                                                        if [ "$i" = ".config" ]; then
+                                                                                if [ -f "$path$i" ]; then
+                                                                                        echo -e "\nArchivo de configuración encontrado."
+                                                                                        echo "Copiando archivo a: $sources..."; sleep 2
+                                                                                        cp "$path$i" "$sources"
+                                                                                        if [ $? -eq 0 ]; then
+                                                                                                echo -e "\nCopia realizada con éxito."
+                                                                                                status=0
+                                                                                                break
+                                                                                        else
+                                                                                                echo -e "\nHa ocurrido un error en la copia.\n"
+                                                                                                exit 1
+                                                                                        fi
+                                                                                else
+                                                                                        echo -e "\n$i no es un archivo de configuración.\n"
+                                                                                        exit 1
+                                                                                fi
+                                                                        else
+                                                                                status=404
+                                                                        fi
+                                                                done
+
+                                                                if [ $((status)) -eq 0 ]; then
+                                                                        break
+                                                                else
+                                                                        echo -e "\nNo se pudo encontrar un archivo de configuración en:"
+                                                                        echo -e "$path"
+                                                                fi
+                                                        fi
+                                                done
+                                        else
+                                                echo -e "\nOpción no válida.\n"
+                                        fi
+
+                                        if [ $((status)) -eq 0 ]; then
+                                                break
+                                        fi
+                                done
                         fi
                 else
-                        echo "No se ha encontrado el archivo de configuración para compilar las fuentes en: $sources o"
-                        echo "$sources-$(uname -r). Por favor, verifique la existencia de este archivo o proceda a realizar"
-                        echo "la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)"
-                        echo; status=1
+                        echo -e "\nArchivo de configuración encontrado."
+                        sleep 2
+                        status=0
                 fi
         else
-                echo "Archivo de configuración encontrado."
-                sleep 2
-                status=0
+                echo -e "\nHa ocurrido un error al entrar en el directorio de las fuentes.\n"; exit 1
         fi
 }
 
 function get_threads()
 {
-        echo -n "¿Cuántos hilos de su procesador desea utilizar para esta compilación? (1 por defecto): "
-        read threads
-        echo -en $threads | grep '[[:digit:]]' > /dev/null 2> /dev/null
-        while [[ $? -ne 0 || $threads -le 0 ]]; do
-                if [[ -z $threads ]]; then
-                        threads=1
-                        break
-                else
-                        echo; echo "La cantidad de hilos introducida no es válida."
-                        echo -n "¿Cuántos hilos de su procesador desea utilizar para esta compilación? (1 por defecto): "
-                        read threads
-                        echo -en $threads | grep '[[:digit:]]' > /dev/null 2> /dev/null
+        while true; do
+                read -t 5 -p "¿Cuántos hilos de su procesador desea utilizar para esta compilación? ($tmp por defecto): " threads
+                if [ -z "$threads" ]; then
+                        threads=$tmp
+                        echo; break
+                fi
+                echo $threads | grep "[[:digit:]]" > /dev/null 2> /dev/null
+                if [ $? -eq 0 ]; then
+                        if [ $threads -gt $tmp ]; then
+                                echo; echo "La cantidad de hilos que ha decidido utilizar para esta compilación"
+                                echo "ha sido $threads, sin embargo su procesador sólo cuenta con $tmp hilos."
+                                echo "Esta configuración no se recomienda, pero (evidentemente) usted decide si continuar..."
+                                read -t 5 -p "¿Desea continuar con esta configuración? [S/n]: (No por defecto): " confirm
+                                if [ -n "$confirm" ]; then
+                                        if [[ "$confirm" = "s" || "$confirm" = "si" ]]; then
+                                                echo; echo "Continuando con una configuración no recomendada."
+                                                sleep 2; break
+                                        elif [[ "$confirm" != "n" || "$confirm" != "no" ]]; then
+                                                echo -e "\n\nLa respuesta \"$confirm\" no es válida.\n"
+                                        fi
+                                else
+                                        echo -e "\n"
+                                fi
+                        elif [ $threads -le 0 ]; then
+                                echo -e "\nLa cantidad de hilos \"$threads\" no es válida.\n"
+                        else
+                                break
+                        fi
                 fi
         done
-}
-
-function get_info()
-{
-        echo; echo "A continuación dígame si desea que su initramfs tenga soporte para LVM y/o LUKS."
-        # Ask by support for LUKS
-        echo -n "$message LUKS? [S/n]: "
-        read luks
-        while [[ $luks != 's' && $luks != 'si' && $luks != 'n' && $luks != 'no' ]]; do
-                echo "$answer"; echo -n "$message LUKS? [S/n]: "
-                read luks
-        done
-
-        # Ask by support for LVM
-        echo -n "$message LVM? [S/n]: "
-        read lvm
-        while [[ "$lvm" != 's' && "$lvm" != 'si' && "$lvm" != 'n' && "$lvm" != 'no' ]]; do
-                echo "$answer"; echo -n "$message LVM? [S/n]: "
-                read lvm
-        done
-
-        # Get the number of threads for the compilation
-        cores=$(cat /proc/cpuinfo | grep "cpu cores")
-        cores=${cores:${#cores}-2}
-        get_threads
-
-        while [ $threads -gt $((cores*2+1)) ]; do
-                echo; echo "La cantidad de hilos que ha decidido utilizar es: $threads y su procesador"
-                echo -n "cuenta con sólo $((cores*2)). Esto no es recomendable. ¿Desea continuar con esta configuración? [S/n]: "
-                read confirm
-                while [[ "$confirm" != 's' && "$confirm" != 'si' && "$confirm" != 'n' && "$confirm" != 'no' ]]; do
-                        echo; echo "La respuesta introducida no es válida."
-                        echo -n "¿Desea continuar con esta configuración? [S/n]: "
-                        read confirm
-                done
-
-                if [[ "$confirm" = 's' || "$confirm" = 'si' ]]; then
-                        echo; echo "Continuando con una configuración no recomendada."
-                        sleep 2
-                        break
-                else
-                        get_threads
-                fi
-        done
-
         if [ $threads -eq 1 ]; then
                 echo "Seleccionado $threads hilo para compilar."
         else
@@ -142,24 +191,66 @@ function get_info()
         fi
 }
 
-if [ "$USER" = 'root' ]; then
+function get_support()
+{
+        while true; do
+                if [ "$2" = "luks" ]; then
+                        read -t 5 -p "$1" luks
+                        if [ -z "$luks" ]; then
+                                luks="n"
+                                echo -e "\n\nSeleccionado \"No\" por defecto."; break
+                        elif [[ "$luks" = "s" || "$luks" = "si" || "$luks" = "n" || "$luks" = "no" ]]; then
+                                break
+                        else
+                                echo; echo "La respuesta \"$luks\" no es válida."
+                        fi
+                else
+                        read -t 5 -p "$1" lvm
+                        if [ -z "$lvm" ]; then
+                                lvm="n"
+                                echo -e "\n\nSeleccionado \"No\" por defecto."; break
+                        elif [[ "$lvm" = "s" || "$lvm" = "si" || "$lvm" = "n" || "$lvm" = "no" ]]; then
+                                break
+                        else
+                                echo; echo "La respuesta \"$lvm\" no es válida."
+                        fi
+                fi
+        done
+        echo
+}
+
+function get_info()
+{
+        echo; echo "A continuación dígame si desea que su initramfs tenga soporte para LVM y/o LUKS."
+        # Ask by support for LUKS
+        get_support "$message LUKS? [S/n] (No por defecto): " "luks"
+        # ASk by support for LVM
+        get_support "$message LVM? [S/n] (No por defecto): " "lvm"
+        # Get the number of threads for the compilation
+        if [ "$1" != "genkernel" ]; then
+                get_threads
+        fi
+}
+
+if [ "$USER" = "root" ]; then
         clear
-        # Get information to work
+        # Verify that everything is correct.
         welcome
         verify
-        if [ $status -eq 0 ]; then
+        if [ $((status)) -eq 0 ]; then
+                # Getting the information needed for work.
                 get_info
                 # Start to work
                 echo; echo "Bien. Ya tengo los datos necesarios para trabajar."
                 echo -n "Trabajando con las opciones: "
 
-                if [[ "$luks" = 's' || "$luks" = 'si' ]]; then
+                if [[ "$luks" = "s" || "$luks" = "si" ]]; then
                         echo -n "LUKS = Sí, "
                 else
                         echo -n "LUKS = No, "
                 fi
 
-                if [[ "$lvm" = 's' || "$lvm" = 'si' ]]; then
+                if [[ "$lvm" = "s" || "$lvm" = "si" ]]; then
                         echo -n "LVM = Sí, "
                 else
                         echo -n "LVM = No, "
@@ -192,78 +283,30 @@ if [ "$USER" = 'root' ]; then
                                         make install
                                         if [ $? -eq 0 ]; then
                                                 echo; echo "Instalación del núcleo finalizada. Generando initramfs..."; echo; sleep 2
-                                                if [[ "$lvm" = 's' || "$lvm" = 'si' && "$luks" = 's' || "$luks" = 'si' ]]; then
+                                                if [[ "$lvm" = "s" || "$lvm" = "si" && "$luks" = "s" || "$luks" = "si" ]]; then
                                                         genkernel --lvm --luks --install initramfs
-                                                        if [ $? = '0' ]; then
-                                                                echo; echo -n "Generación de initramfs finalizada. "
-                                                                echo -n "(Re)generando archivo de configuración de GRUB..."; echo
-                                                                sleep 2
-                                                                grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? -eq 0 ]; then
-                                                                        echo; echo -n "Generación de archivo de configuración de "
-                                                                        echo "GRUB finalizada con éxito."; sleep 2
-                                                                else
-                                                                        echo; echo -n "Ha ocurrido un error en la (re)generación del archivo "
-                                                                        echo "de configuración de GRUB. Saliendo..."; sleep 2; exit 1
-                                                                fi
-                                                        else
-                                                                echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2; exit 1
-                                                        fi
-                                                elif [[ "$lvm" = 's' || "$lvm" = 'si' && "$luks" = 'n' || "$luks" = 'no' ]]; then
+                                                elif [[ "$lvm" = "s" || "$lvm" = "si" && "$luks" = "n" || "$luks" = "no" ]]; then
                                                         genkernel --lvm --install initramfs
-                                                        if [ $? -eq 0 ]; then
-                                                                echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
-                                                                echo "configuración de GRUB..."; sleep 2
-                                                                grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? -eq 0 ]; then
-                                                                        echo; echo -n "Generación de archivo de configuración de GRUB "
-                                                                        echo "finalizada con éxito. "; sleep 2
-                                                                else
-                                                                        echo
-                                                                        echo -n "Ha ocurrido un error en la (re)generación del archivo de "
-                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
-                                                                fi
-                                                        else
-                                                                echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2; exit 1
-                                                        fi
-                                                elif [[ "$lvm" = 'n' || "$lvm" = 'no' && "$luks" = 's' || "$luks" = 'si' ]]; then
+                                                elif [[ "$lvm" = "n" || "$lvm" = "no" && "$luks" = "s" || "$luks" = "si" ]]; then
                                                         genkernel --luks --install initramfs
-                                                        if [ $? -eq ]; then
-                                                                echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
-                                                                echo "configuración de GRUB..."; sleep 2
-                                                                grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? = '0' ]; then
-                                                                        echo; echo -n "Generación de archivo de configuración de GRUB "
-                                                                        echo "finalizada con éxito."; sleep 2
-
-                                                                else
-                                                                        echo; echo -n "Ha ocurrido un error en la (re)generación del archivo de "
-                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
-                                                                fi
-                                                        else
-                                                                echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2; exit 1
-                                                        fi
                                                 else
                                                         genkernel --install initramfs
-                                                        if [ $? -eq 0 ]; then
-                                                                echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
-                                                                echo "configuración de GRUB..."; sleep 2
-                                                                grub-mkconfig -o /boot/grub/grub.cfg
-                                                                if [ $? -eq 0 ]; then
-                                                                        echo; echo -n "Generación de archivo de configuración de GRUB "
-                                                                        echo "finalizada con éxito."; sleep 2
+                                                fi
 
-                                                                else
-                                                                        echo; echo -n "Ha ocurrido un error en la (re)generación del archivo de "
-                                                                        echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
-                                                                fi
+                                                if [ $? -eq 0 ]; then
+                                                        echo; echo -n "Generación de initramfs finalizada. (Re)generando archivo de "
+                                                        echo "configuración de GRUB..."; sleep 2
+                                                        grub-mkconfig -o /boot/grub/grub.cfg
+                                                        if [ $? -eq 0 ]; then
+                                                                echo; echo -n "Generación de archivo de configuración de GRUB "
+                                                                echo "finalizada con éxito."; sleep 2
                                                         else
-                                                                echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
-                                                                sleep 2; exit
+                                                                echo; echo -n "Ha ocurrido un error en la (re)generación del archivo de "
+                                                                echo "configuración de GRUB. Saliendo..."; sleep 2; exit 1
                                                         fi
+                                                else
+                                                        echo; echo "Ha ocurrido un error en la generación del initramfs. Saliendo..."
+                                                        sleep 2; exit
                                                 fi
 
                                                 c=0
@@ -375,6 +418,38 @@ if [ "$USER" = 'root' ]; then
                         fi
                 else
                         echo; echo "No se ha podido acceder al directorio. Saliendo..."; echo; sleep 2
+                fi
+        else
+                get_info "genkernel"
+                echo; echo "Bien. Ya tengo los datos necesarios para trabajar."
+                echo -n "Trabajando con las opciones: "
+
+                if [[ "$luks" = "s" || "$luks" = "si" ]]; then
+                        echo -n "LUKS = Sí, "
+                else
+                        echo -n "LUKS = No, "
+                fi
+
+                if [[ "$lvm" = "s" || "$lvm" = "si" ]]; then
+                        echo -e "LVM = Sí\n"
+                else
+                        echo -e "LVM = No\n"
+                fi
+
+                if [[ "$luks" = "s" || "$luks" = "si" && "$lvm" = "s" || "$lvm" = "si" ]]; then
+                        genkernel --luks --lvm all
+                elif [[ "$luks" = "s" || "$luks" = "si" && "$lvm" = "n" || "$lvm" = "no" ]]; then
+                        genkernel --luks all
+                elif [[ "$luks" = "n" || "$luks" = "no" && "$lvm" = "s" || "$lvm" = "si" ]]; then
+                        genkernel --lvm all
+                else
+                        genkernel all
+                fi
+
+                if [ $? -eq 0 ]; then
+                        echo -e "\nTrabajo finalizado.\n"
+                else
+                        echo -e "\nOcurrió un error en el proceso con Genkernel.\n"
                 fi
         fi
 else
