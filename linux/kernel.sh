@@ -182,6 +182,8 @@ function get_threads()
                         else
                                 break
                         fi
+                else
+                        echo -e "\nLa cantidad de hilos: \"$threads\" no es válida.\n"
                 fi
         done
         if [ $threads -eq 1 ]; then
@@ -198,7 +200,7 @@ function get_support()
                         read -t 5 -p "$1" luks
                         if [ -z "$luks" ]; then
                                 luks="n"
-                                echo -e "\n\nSeleccionado \"No\" por defecto."; break
+                                echo -e "\nSeleccionado \"No\" por defecto."; break
                         elif [[ "$luks" = "s" || "$luks" = "si" || "$luks" = "n" || "$luks" = "no" ]]; then
                                 break
                         else
@@ -208,7 +210,7 @@ function get_support()
                         read -t 5 -p "$1" lvm
                         if [ -z "$lvm" ]; then
                                 lvm="n"
-                                echo -e "\n\nSeleccionado \"No\" por defecto."; break
+                                echo -e "\nSeleccionado \"No\" por defecto."; break
                         elif [[ "$lvm" = "s" || "$lvm" = "si" || "$lvm" = "n" || "$lvm" = "no" ]]; then
                                 break
                         else
