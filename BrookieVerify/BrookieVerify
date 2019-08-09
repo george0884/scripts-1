@@ -60,8 +60,8 @@ function get_info()
         echo -e "Licencia: GNU GPL v2\n"
         echo -e "Autor(es): Lord Brookie\n"
         echo -e "Repositorio(s) del programa:\n"
-        echo "GitHub: https://github.com/brookiestein/scripts/$name/"
-        echo -e "GitLab: https://gitlab.com/LordBrookie/scripts/$name/\n"
+        echo "GitHub: https://github.com/brookiestein/scripts/tree/master/$name/"
+        echo -e "GitLab: https://gitlab.com/LordBrookie/scripts/tree/master/$name/\n"
 }
 
 while [ $# -ne 0 ]; do
