@@ -1,0 +1,310 @@
+#!/bin/bash
+# Copyright (C) 19aa Lord Brookie
+# Este programa es software libre. Puede redistribuirlo y/o
+# modificarlo bajo los términos de la Licencia Pública General
+# de GNU según es publicada por la Free Software Foundation,
+# bien de la versión 2 de dicha Licencia o bien --según su
+# elección-- de cualquier versión posterior.
+# Este programa se distribuye con la esperanza de que sea
+# útil, pero SIN NINGUNA GARANTÍA, incluso sin la garantía
+# MERCANTIL implícita o sin garantizar la CONVENIENCIA PARA UN
+# PROPÓSITO PARTICULAR. Para más detalles, véase la Licencia
+# Pública General de GNU.
+# Debería haber recibido una copia de la Licencia Pública
+# General junto con este programa. En caso contrario, escriba
+# a la Free Software Foundation, Inc., en 675 Mass Ave,
+# Cambridge, MA 02139, EEUU.
+
+# Colors: in there order: white, red, green, cyan
+colors=("1;37m" "1;31m" "1;32m" "1;36m")
+name="BrookieVerify"
+banner="
+ ____                  _    _    __     __        _  __       
+| __ ) _ __ ___   ___ | | _(_) __\ \   / /__ _ __(_)/ _|_   _ 
+|  _ \| '__/ _ \ / _ \| |/ / |/ _ \ \ / / _ \ '__| | |_| | | |
+| |_) | | | (_) | (_) |   <| |  __/\ V /  __/ |  | |  _| |_| |
+|____/|_|  \___/ \___/|_|\_\_|\___| \_/ \___|_|  |_|_|  \__, |
+                                                        |___/ 
+"
+
+function print_banner()
+{
+        echo -e "\e[${colors[2]}$banner"
+}
+
+clear
+print_banner
+
+function get_help()
+{
+        echo -ne "\e[${colors[3]}"
+        echo "Programa para verificar firmas hash: MD5, Sha1, Sha224, Sha256,"
+        echo "Sha384 y Sha512."
+        echo -e "\nOpciones disponibles:\n"
+        echo -e "-a [--md5] <hash>\tVerifica la firma hash MD5 del archivo especificado."
+        echo -e "-b [--sha1] <hash>\tVerifica la firma hash Sha1 del archivo especificado."
+        echo -e "-c [--sha224] <hash>\tVerifica la firma hash Sha224 del archivo especificado."
+        echo -e "-d [--sha256] <hash>\tVerifica la firma hash Sha256 del archivo especificado."
+        echo -e "-e [--sha384] <hash>\tVerifica la firma hash Sha384 del archivo especificado."
+        echo -e "-f [--sha512] <hash>\tVerifica la firma hash Sha512 del archivo especificado."
+        echo -e "-g [--file] <archivo>\tArchivo a verificar. (Requerido)"
+        echo -e "-h [--help]\t\tMuestra esta página de ayuda y sale."
+        echo -e "-i [--info]\t\tMuesta información sobre este programa y sale.\n"
+}
+
+function get_info()
+{
+        echo -ne "\e[${colors[3]}"
+        echo -e "Nombre: $name\n"
+        echo -e "Versión: 0.0.1\n"
+        echo -e "Licencia: GNU GPL v2\n"
+        echo -e "Autor(es): Lord Brookie\n"
+        echo -e "Repositorio(s) del programa:\n"
+        echo "GitHub: https://github.com/brookiestein/scripts/$name/"
+        echo -e "GitLab: https://gitlab.com/LordBrookie/scripts/$name/\n"
+}
+
+while [ $# -ne 0 ]; do
+        case "$1" in
+                -a|--md5)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta la firma hash MD5.\n"
+                                exit 1
+                        else
+                                md5="$1"
+                                if [ ${#md5} -lt 32 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash MD5 es demasiado corta.\n"
+                                        exit 1
+                                elif [ ${#md5} -gt 32 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash MD5 es demasiado larga.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -b|--sha1)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta la firma Sha1.\n"
+                                exit 1
+                        else
+                                sha1="$1"
+                                if [ ${#sha1} -lt 40 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha1 es demasiado corta.\n"
+                                        exit 1
+                                elif [ ${#sha1} -gt 40 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha1 es demasiado larga.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -c|--sha224)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta la firma hash Sha224.\n"
+                                exit 1
+                        else
+                                sha224="$1"
+                                if [ ${#sha224} -lt 56 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha224 es demasiado corta.\n"
+                                        exit 1
+                                elif [ ${#sha224} -gt 56 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha224 es demasiado larga.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -d|--sha256)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta la firma hash Sha256.\n"
+                                exit 1
+                        else
+                                sha256="$1"
+                                if [ ${#sha256} -lt 64 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha256 es demasiado corta.\n"
+                                        exit 1
+                                elif [ ${#sha256} -gt 64 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha256 es demasiado larga.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -e|--sha384)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta la firma Sha384.\n"
+                                exit 1
+                        else
+                                sha384="$1"
+                                if [ ${#sha384} -lt 96 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha384 es demasiado corta.\n"
+                                        exit 1
+                                elif [ ${#sha384} -gt 96 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha384 es demasiado larga.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -f|--sha512)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta la firma hash Sha512.\n"
+                                exit 1
+                        else
+                                sha512="$1"
+                                if [ ${#sha512} -lt 128 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha512 es demasiado corta.\n"
+                                        exit 1
+                                elif [ ${#sha512} -gt 128 ]; then
+                                        echo -e "\e[${colors[1]}$name: Error: La firma hash Sha512 es demasiado larga.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -g|--file)
+                        shift
+                        if [ -z "$1" ]; then
+                                echo -e "\e[${colors[1]}$name: Falta el archivo a verificar.\n"
+                                exit 1
+                        else
+                                if [ -f "$1" ]; then
+                                        file="$1"
+                                else
+                                        echo -e "\e[${colors[1]}$name: Error: El archivo: $1 no existe.\n"
+                                        exit 1
+                                fi
+                        fi
+                        ;;
+                -h|--help)
+                        get_help
+                        exit 0
+                        ;;
+                -i|--info)
+                        get_info
+                        exit 0
+                        ;;
+                *)
+                        echo -e "\e[${colors[1]}$name: Error: Opción: $1 no válida.\n"
+                        exit 1
+                        ;;
+        esac
+        shift
+done
+
+if [ -z "$file" ]; then
+        echo -e "\e[${colors[1]}$name: No ha especificado archivo a verificar."
+        echo -e "Puede utilizar: -h o --help para obtener ayuda.\n"
+        exit 1
+fi
+
+if [[ -z "$md5" && -z "$sha1" && -z "$sha224" && -z "$sha256" && -z "$sha384" && -z "$sha512" ]]; then
+        echo -e "\e[${colors[1]}$name: No ha especificado qué firma hash desea verificar."
+        echo -e "Puede utilizar: -h o --help para obtener ayuda.\n"
+        exit 1
+fi
+
+function verify()
+{
+        success="\e[${colors[2]}Firma hash $1: Coincidente."
+        error="\e[${colors[1]}Firma hash $1: No coincidente."
+        if [ "$1" = "MD5" ]; then
+                tmp_hash="$(md5sum $file)"
+                tmp_hash="${tmp_hash:0:32}"
+        elif [ "$1" = "Sha1" ]; then
+                tmp_hash="$(sha1sum $file)"
+                tmp_hash="${tmp_hash:0:40}"
+        elif [ "$1" = "Sha224" ]; then
+                tmp_hash="$(sha224sum $file)"
+                tmp_hash="${tmp_hash:0:56}"
+        elif [ "$1" = "Sha256" ]; then
+                tmp_hash="$(sha256sum $file)"
+                tmp_hash="${tmp_hash:0:64}"
+        elif [ "$1" = "Sha384" ]; then
+                tmp_hash="$(sha384sum $file)"
+                tmp_hash="${tmp_hash:0:96}"
+        else
+                tmp_hash="$(sha512sum $file)"
+                tmp_hash="${tmp_hash:0:128}"
+        fi
+
+        if [ $? -ne 0 ]; then
+                echo -e "\e[${colors[1]}$name: Ocurrió un error en la creación del hash $1 temporal."
+                exit 1
+        fi
+
+        if [ "$1" = "MD5" ]; then
+                if [ "$tmp_hash" = "$md5" ]; then
+                        echo -e "$success\n"
+                else
+                        echo -e "$error\n"
+                fi
+        elif [ "$1" = "Sha1" ]; then
+                if [ "$tmp_hash" = "$sha1" ]; then
+                        echo -e "$success\n"
+                else
+                        echo -e "$error\n"
+                fi
+        elif [ "$1" = "Sha224" ]; then
+                if [ "$tmp_hash" = "$sha224" ]; then
+                        echo -e "$success\n"
+                else
+                        echo -e "$error\n"
+                fi
+        elif [ "$1" = "Sha256" ]; then
+                if [ "$tmp_hash" = "$sha256" ]; then
+                        echo -e "$success\n"
+                else
+                        echo -e "$error\n"
+                fi
+        elif [ "$1" = "Sha384" ]; then
+                if [ "$tmp_hash" = "$sha384" ]; then
+                        echo -e "$success\n"
+                else
+                        echo -e "$error\n"
+                fi
+        else
+                if [ "$tmp_hash" = "$sha512" ]; then
+                        echo -e "$success\n"
+                else
+                        echo -e "$error\n"
+                fi
+        fi
+}
+
+if [ -n "$md5" ]; then
+        echo -e "\e[${colors[0]}Verificando firma hash: MD5...\n"
+        sleep 2
+        verify "MD5"
+fi
+
+if [ -n "$sha1" ]; then
+        echo -e "\e[${colors[0]}Verificando firma hash: Sha1...\n"
+        sleep 2
+        verify "Sha1"
+fi
+
+if [ -n "$sha224" ]; then
+        echo -e "\e[${colors[0]}Verificando firma hash: Sha224...\n"
+        sleep 2
+        verify "Sha224"
+fi
+
+if [ -n "$sha256" ]; then
+        echo -e "\e[${colors[0]}Verificando firma hash: Sha256...\n"
+        sleep 2
+        verify "Sha256"
+fi
+
+if [ -n "$sha384" ]; then
+        echo -e "\e[${colors[0]}Verificando firma hash: Sha384...\n"
+        sleep 2
+        verify "Sha384"
+fi
+
+if [ -n "$sha512" ]; then
+        echo -e "\e[${colors[0]}Verifcando firma hash: Sha512...\n"
+        sleep 2
+        verify "Sha512"
+fi
+
