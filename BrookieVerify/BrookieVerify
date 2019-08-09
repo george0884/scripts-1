@@ -64,6 +64,11 @@ function get_info()
         echo -e "GitLab: https://gitlab.com/LordBrookie/scripts/tree/master/$name/\n"
 }
 
+if [ $# -eq 0 ]; then
+        get_help
+        exit 0
+fi
+
 while [ $# -ne 0 ]; do
         case "$1" in
                 -a|--md5)
