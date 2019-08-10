@@ -16,6 +16,8 @@
 # Cambridge, MA 02139, EEUU.
 
 name="BrookieCrypt"
+# Colors: In there order: Purple, Red, Green, Cyan.
+colors=("1;35m" "1;31m" "1;32m" "1;36m")
 banner="
  ____                  _    _       ____                  _   
 | __ ) _ __ ___   ___ | | _(_) ___ / ___|_ __ _   _ _ __ | |_ 
@@ -27,7 +29,7 @@ banner="
 
 function print_banner()
 {
-        echo "$banner"
+        echo -e "\e[${colors[0]}$banner"
 }
 
 clear
@@ -35,7 +37,7 @@ print_banner
 
 function min_info()
 {
-        echo "$name es un programa que (utiliza GPG y) se encarga de (des)cifrar un archivo,"
+        echo -e "\e[${colors[3]}$name es un programa que (utiliza GPG y) se encarga de (des)cifrar un archivo,"
         echo "guardar su firma hash (sha256 y sha512) y su firma GPG."
 }
 
@@ -66,7 +68,7 @@ function get_info()
 
 function warning_confution()
 {
-        echo -e "\n$name: Confusión: Ha decidido cifrar y descifrar"
+        echo -e "\n\e[${colors[1]}$name: Confusión: Ha decidido cifrar y descifrar"
         echo -e "al mismo tiempo. Sólo puede utilizar uno.\n"
 }
 
@@ -105,7 +107,7 @@ while getopts "f:p:acdhv" flags; do
                         if [ -f "$OPTARG" ]; then
                                 file="$OPTARG"
                         else
-                                echo -e "\n$name: Error: El archivo especificado no existe.\n"
+                                echo -e "\n\e[${colors[1]}$name: Error: El archivo especificado no existe.\n"
                                 exit 1
                         fi
                         ;;
@@ -113,31 +115,26 @@ while getopts "f:p:acdhv" flags; do
                         if [ -d "$OPTARG" ]; then
                                 path="$OPTARG"
                         else
-                                echo -e "\n$name: Error: La ruta especificada no es válida.\n"
+                                echo -e "\n\e[${colors[1]}$name: Error: La ruta especificada no es válida.\n"
                                 exit 1
                         fi
                         ;;
                 v)
                         if [ -z "$verbose" ]; then
-                                if [ -z "$quiet" ]; then
-                                        verbose="yes"
-                                else
-                                        echo -e "\n$name: Modo quieto habilitado. No se puede habilitar"
-                                        echo -e "el modo verboso.\n"
-                                fi
+                                verbose="yes"
                         else
-                                echo -e "\n$name: Modo verboso sólo es necesario uno. Ignorando los demás...\n"
+                                echo -e "\n\e[${colors[1]}$name: Modo verboso sólo es necesario uno. Ignorando los demás...\n"
                         fi
                         ;;
                 \?)
-                        echo -e "\n$name: Opción desconocida.\n"
+                        echo -e "\n\e[${colors[1]}$name: Opción desconocida.\n"
                         exit 1
                         ;;
         esac
 done
 
 if [ -z "$file" ]; then
-        echo -e "$name: Archivo a (des)cifrar no especificado.\n"
+        echo -e "\e[${colors[1]}$name: Archivo a (des)cifrar no especificado.\n"
         exit 1
 fi
 
@@ -149,7 +146,7 @@ if [ -n "$crypt" ]; then
         name_final="$file.gpg"
 
         if [ "$verbose" = "yes" ]; then
-                echo -e "\nCifrando: $file ..."
+                echo -e "\n\e[${colors[3]}Cifrando: $file ..."
         fi
 
         sleep 2
@@ -162,7 +159,7 @@ if [ -n "$crypt" ]; then
 
         if [ $? -eq 0 ]; then
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\nCifrado finalizado. Creando firma hash sha256..."
+                        echo -e "\n\e[${colors[2]}Cifrado finalizado. Creando firma hash sha256..."
                 fi
                 sleep 2
 
@@ -181,7 +178,7 @@ if [ -n "$crypt" ]; then
                 fi
 
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\nFirma hash sha256 creada con éxito. Creando firma sha512..."
+                        echo -e "\n\e[${colors[2]}Firma hash sha256 creada con éxito. \e[${colors[3]}Creando firma sha512..."
                 fi
                 sleep 2
 
@@ -200,7 +197,7 @@ if [ -n "$crypt" ]; then
                 fi
 
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\nFirma hash sha512 creada con éxito. Creando firma GPG..."
+                        echo -e "\n\e[${colors[2]}Firma hash sha512 creada con éxito. \e[${colors[3]}Creando firma GPG..."
                 fi
                 sleep 2
 
@@ -212,19 +209,19 @@ if [ -n "$crypt" ]; then
 
                 if [ $? -eq 0 ]; then
                         if [ "$verbose" = "yes" ]; then
-                                echo -e "\nFirma GPG creada con éxito."
+                                echo -e "\n\e[${colors[2]}Firma GPG creada con éxito."
                         fi
                 else
-                        echo -e "\n$name: Ocurrió un error en la creación de la firma GPG.\n"
+                        echo -e "\n\e[${colors[1]}$name: Ocurrió un error en la creación de la firma GPG.\n"
                         exit 1
                 fi
         else
-                echo -e "\n$name: Ocurrió un error en el cifrado de: $file\n"
+                echo -e "\n\e[${colors[1]}$name: Ocurrió un error en el cifrado de: $file\n"
                 exit 1
         fi
 else
         if [ "$verbose" = "yes" ]; then
-                echo "Verificando firma hash sha256..."
+                echo -e "\e[${colors[3]}Verificando firma hash sha256..."
         fi
         sleep 2
 
@@ -238,8 +235,8 @@ else
                 tmp_hash="$(cat $file.sha256sum)"
                 if [ "$tmp_hash" = "$sha256" ]; then
                         if [ "$verbose" = "yes" ]; then
-                                echo -e "\n¡Firma hash sha256 verificada!"
-                                echo "Verificando firma hash sha512..."
+                                echo -e "\n\e[${colors[2]}¡Firma hash sha256 verificada!"
+                                echo -e "\e[${colors[3]}Verificando firma hash sha512..."
                         fi
                         sleep 2
 
@@ -247,8 +244,8 @@ else
                                 tmp_hash="$(cat $file.sha512sum)"
                                 if [ "$tmp_hash" = "$sha512" ]; then
                                         if [ "$verbose" = "yes" ]; then
-                                                echo -e "\n¡Firma hash sha512 verificada!"
-                                                echo "Verificando firma GPG..."
+                                                echo -e "\n\e[${colors[2]}¡Firma hash sha512 verificada!"
+                                                echo -e "\e[${colors[3]}Verificando firma GPG..."
                                         fi
                                         sleep 2
 
@@ -256,7 +253,7 @@ else
                                                 gpg --verify "$file.asc" "$file"
                                                 if [ $? -eq 0 ]; then
                                                         if [ "$verbose" = "yes" ]; then
-                                                                echo -e "\n¡Firma GPG verificada! Descifrando..."
+                                                                echo -e "\n\e[${colors[2]}¡Firma GPG verificada! \n\e[${colors[3]}Descifrando..."
                                                         fi
                                                         sleep 2
 
@@ -268,41 +265,41 @@ else
 
                                                         if [ $? -eq 0 ]; then
                                                                 if [ "$verbose" = "yes" ]; then
-                                                                        echo -en "\n¡Archivo descifrado!"
+                                                                        echo -en "\n\e[${colors[2]}¡Archivo descifrado!"
                                                                 fi
                                                         else
-                                                                echo -e "\n$name: Ocurrió un error en el descifrado de: $file\n"
+                                                                echo -e "\n\e[${colors[1]}$name: Ocurrió un error en el descifrado de: $file\n"
                                                                 exit 1
                                                         fi
                                                 else
-                                                        echo -e "\n$name: La firma GPG no es válida. ¡Cuidado!\n"
+                                                        echo -e "\n\e[${colors[1]}$name: La firma GPG no es válida. ¡Cuidado!\n"
                                                         exit 1
                                                 fi
                                         else
-                                                echo -e "\n$name: Error: El archivo: $file.asc no existe."
+                                                echo -e "\n\e[${colors[1]}$name: Error: El archivo: $file.asc no existe."
                                                 echo -e "No se podrá continuar.\n"
                                                 exit 1
                                         fi
                                 else
-                                        echo -e "\n$name: Las firmas hash sha512 son distintas. ¡Cuidado!\n"
+                                        echo -e "\n\e[${colors[1]}$name: Las firmas hash sha512 son distintas. ¡Cuidado!\n"
                                         exit 1
                                 fi
                         else
-                                echo -e "\n$name: Error: El archivo: $file.sha512 no existe."
+                                echo -e "\n\e[${colors[1]}$name: Error: El archivo: $file.sha512 no existe."
                                 echo -e "No se podrá continuar.\n"
                                 exit 1
                         fi
                 else
-                        echo -e "\n$name: Las firmas hash sha256 son distintas. ¡Cuidado!\n"
+                        echo -e "\n\e[${colors[1]}$name: Las firmas hash sha256 son distintas. ¡Cuidado!\n"
                         exit 1
                 fi
         else
-                echo -e "\n$name: Error: El archivo: $file.sha256sum no existe."
+                echo -e "\n\e[${colors[1]}$name: Error: El archivo: $file.sha256sum no existe."
                 echo -e "No se podrá continuar.\n"
                 exit 1
         fi
 fi
 
-echo -e "\n¡Trabajo finalizado!\n"
+echo -e "\n\e[${colors[2]}¡Trabajo finalizado!\n"
 exit 0
 
