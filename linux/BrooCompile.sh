@@ -17,6 +17,8 @@
 
 # Variables
 sources="/usr/src/linux"
+old_sources_path="$sources-$(uname -r)"
+boot="/boot"
 name="BrooCompile"
 # Hilos
 cores=$(cat /proc/cpuinfo | grep "cpu cores")
@@ -126,8 +128,9 @@ function verify()
                                         fi
                                 fi
                         else
-                                echo -e "\n\e[${colors[1]}No se ha encontrado el archivo de configuración para compilar las fuentes en: $sources o"
-                                echo "$sources-$(uname -r). Por favor, verifique la existencia de este archivo o proceda a realizar"
+                                echo -ne "\n\e[${colors[1]}No se ha encontrado el archivo de configuración para compilar "
+                                echo -e "las fuentes en:\n$sources o $sources-$(uname -r)."
+                                echo "Por favor, verifique la existencia de este archivo o proceda a realizar"
                                 echo -e "la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)\n"
                                 echo -e "\e[${colors[0]}Le ofrezco dos opciones:"
                                 echo "1-Utilizar la herramienta Genkernel o"
@@ -146,24 +149,53 @@ function verify()
                                                 break
                                         elif [ "$opt" = "$d" ]; then
                                                 while true; do
-                                                        echo -e "\n\e[${colors[0]}Introduzca la ruta en la que puedo encontrar un archivo"
-                                                        read -p "de configuración válido: " path
+                                                        echo -ne "\n\e[${colors[0]}Introduzca la ruta en la que "
+                                                        echo -ne "pueda encontrar un archivo de configuración válido: "
+                                                        read path
                                                         if [ -z "$path" ]; then
                                                                 echo -e "\n\e[${colors[1]}$name: No ha introducido nada.\n"
                                                         elif [ ! -d "$path" ]; then
                                                                 echo -e "\n\e[${colors[1]}$name: El directorio: \"$path\" no existe."
                                                         else
+                                                                if [ "${path:${#path}-1:${#path}}" != "/" ]; then
+                                                                        path+="/"
+                                                                fi
                                                                 dirs="$(ls -a1 "$path")"
                                                                 for i in $dirs; do
                                                                         if [ "$i" = ".config" ]; then
-                                                                                if [ -f "$path/$i" ]; then
-                                                                                        echo -e "\n\e[${colors[2]}Archivo de configuración "
-                                                                                        echo "encontrado."
+                                                                                if [ -f "$path$i" ]; then
+                                                                                        echo -ne "\n\e[${colors[2]}Archivo "
+                                                                                        echo "de configuración encontrado."
                                                                                         echo "Copiando archivo a: $sources..."; sleep 2
-                                                                                        cp "$path/$i" "$sources"
+                                                                                        cp "$path$i" "$sources"
                                                                                         if [ $? -eq 0 ]; then
                                                                                                 echo -ne "\n\e[${colors[2]}$name: "
                                                                                                 echo "Copia realizada con éxito."
+                                                                                                if [ "$verbose" = "yes" ]; then
+                                                                                                        echo -ne "\e[${colors[2]}"
+                                                                                                        echo -n "Sincronizando "
+                                                                                                        echo -n "configuración "
+                                                                                                        echo -e "anterior...\n"
+                                                                                                fi
+                                                                                                sleep 2
+                                                                                                make olddefconfig
+                                                                                                if [ $? -eq 0 ]; then
+                                                                                                        if [ "$verbose" = "yes" ]; then
+                                                                                                                echo -ne "\n\e[1;23m"
+                                                                                                                echo -n "Sincronización "
+                                                                                                                echo -n "realizada "
+                                                                                                                echo -e "exitosamente.\n"
+                                                                                                        fi
+                                                                                                        status=0
+                                                                                                else
+                                                                                                        echo -ne "\n\e[${colors[1]}$name:"
+                                                                                                        echo -n " Ha ocurrido un error "
+                                                                                                        echo -n "al sincronizar las "
+                                                                                                        echo -n "configuraciones "
+                                                                                                        echo -n "anteriores con las "
+                                                                                                        echo -e "nuevas.\n"
+                                                                                                        status=1
+                                                                                                fi
                                                                                                 status=0
                                                                                                 break
                                                                                         else
@@ -172,7 +204,7 @@ function verify()
                                                                                                 exit 1
                                                                                         fi
                                                                                 else
-                                                                                        echo -e "\n\e[${colors[1]}$name: $i "
+                                                                                        echo -ne "\n\e[${colors[1]}$name: $i "
                                                                                         echo -e "no es un archivo de configuración.\n"
                                                                                         exit 1
                                                                                 fi
@@ -184,8 +216,8 @@ function verify()
                                                                 if [ $((status)) -eq 0 ]; then
                                                                         break
                                                                 else
-                                                                        echo -e "\n\e[${colors[1]}$name: No se pudo encontrar un "
-                                                                        echo "archivo de configuración en: \e[${colors[0]}$path"
+                                                                        echo -ne "\n\e[${colors[1]}$name: No se pudo encontrar un "
+                                                                        echo -e "archivo de configuración en: \e[${colors[0]}$path"
                                                                 fi
                                                         fi
                                                 done
@@ -288,7 +320,7 @@ function verify_threads()
         echo "$1" | grep "[[:digit:]]" > /dev/null 2>&1
         if [ $? -eq 0 ]; then
                 threads=$1
-                while [ $threads -gt $cores ]; do
+                while [ $threads -gt $((cores+1)) ]; do
                         get_threads
                         if [ "$next" = "yes" ]; then
                                 break
