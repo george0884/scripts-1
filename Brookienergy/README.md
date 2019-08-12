@@ -13,15 +13,15 @@ podrás imaginar de ahí en adelante... Así que el trabajo de Brookienergy es, 
 verificar el estado/porcentaje de carga de la batería de mi laptop y, si detecta que está por
 debajo del 15%, guarda un log (registro) dónde yo le indique (en caso de no hacerlo toma mi home)
 diciendo que suspenderá el ordenador por escasa energía en la batería para así evitar que se apague
-por falta de energía y se "pierda" el trabajo que, quién sabe, por cuánto tiempo estuvo realizando xD.**
+por falta de energía y se "pierda" el trabajo que, quién sabe por cuánto tiempo estuvo realizando xD.**
 
 **Como ya comenté: Brookienergy no pretende ser una revolución, sino más bien suplir una necesidad puntual
 y/o momentánea, sin embargo, lo publico licenciado bajo GNU GPL v2 para qué, si quieres estudiar su funcionamiento,
 modificarlo, redistribuirlo o todo lo anterior en conjunción lo hagas.**
 
 **Dependencias:**
-```
+
 [ACPI](https://sourceforge.net/projects/acpiclient/)
+
 [PM-UTILS](https://pm-utils.freedesktop.org/wiki/)
-```
 
