@@ -1,0 +1,191 @@
+#!/bin/bash
+# Copyright (C) 19aa Lord Brookie
+# Este programa es software libre. Puede redistribuirlo y/o
+# modificarlo bajo los términos de la Licencia Pública General
+# de GNU según es publicada por la Free Software Foundation,
+# bien de la versión 2 de dicha Licencia o bien --según su
+# elección-- de cualquier versión posterior.
+# Este programa se distribuye con la esperanza de que sea
+# útil, pero SIN NINGUNA GARANTÍA, incluso sin la garantía
+# MERCANTIL implícita o sin garantizar la CONVENIENCIA PARA UN
+# PROPÓSITO PARTICULAR. Para más detalles, véase la Licencia
+# Pública General de GNU.
+# Debería haber recibido una copia de la Licencia Pública
+# General junto con este programa. En caso contrario, escriba
+# a la Free Software Foundation, Inc., en 675 Mass Ave,
+# Cambridge, MA 02139, EEUU.
+
+# Variables
+# Colors: In there order: Red, Green, Cyan and Purple
+colors=("1;31m" "1;32m" "1;36m" "1;35m")
+path="$HOME"
+none_changes="La carga de la batería no ha sufrido ningún cambio en los últimos 15 segundos."
+name="Brookienergy"
+name_ascii="
+ ____                  _    _
+| __ ) _ __ ___   ___ | | _(_) ___ _ __   ___ _ __ __ _ _   _ 
+|  _ \| '__/ _ \ / _ \| |/ / |/ _ \ '_ \ / _ \ '__/ _\` | | | |
+| |_) | | | (_) | (_) |   <| |  __/ | | |  __/ | | (_| | |_| |
+|____/|_|  \___/ \___/|_|\_\_|\___|_| |_|\___|_|  \__, |\__, |
+                                                  |___/ |___/ 
+"
+
+function banner
+{
+        echo -e "\e[${colors[3]}$name_ascii"
+}
+
+function get_help
+{
+        clear
+        banner
+        echo -e "\e[${colors[2]}$name es un programa que <<supervisa>> el nivel de energía"
+        echo "de la batería y en caso de estar por debajo del 15% suspende el sistema."
+        echo "Cada 15 segundos $name verifica el estado de carga de la batería."
+        echo "Su funcionamiento es similiar a un demonio."
+        echo -e "\nOpciones disponibles:\n"
+        echo -e "-p <ruta>\tAlmacena registro/log en la ruta especificada. En caso de no especificar"
+        echo -e "\t\tla ruta, se toma la carpeta personal del usuario que ejecuta $name."
+        echo -e "-h\t\tMuestra esta página de ayuda y sale."
+        echo -e "-v\t\tHabilita el modo verboso (Muestra registro/log en la salida estándar).\n"
+}
+
+while getopts "p:hv" flag; do
+        case "$flag" in
+                p)
+                        if [ -d "$OPTARG" ]; then
+                                if [ -x "$OPTARG" ]; then
+                                        path="$OPTARG"
+                                else
+                                        echo -e "\n\e[${colors[0]}$name: Error: No se puede acceder a: $OPTARG.\n"
+                                        exit 1
+                                fi
+                        else
+                                echo -e "\n\e[${colors[0]}$name: Error: $OPTARG no es un directorio.\n"
+                                exit 1
+                        fi
+                        ;;
+                h)
+                        get_help
+                        exit 0
+                        ;;
+                v)
+                        if [ -z "$verbose" ]; then
+                                verbose="yes"
+                        else
+                                echo -e "\e[${colors[2]}$name: Modo verboso: Sólo es necesario uno.\n"
+                        fi
+                        ;;
+                \?)
+                        echo -e "\n\e[${colors[0]}$name: Error: Parámetro desconocido.\n"
+                        exit 1
+                        ;;
+        esac
+done
+
+function verify
+{
+        if [ -f "/usr/bin/acpi" ]; then
+                acpi_ok=0
+                if [ -f "/usr/sbin/pm-suspend" ]; then
+                        pm_ok=0
+                else
+                        pm_ok=1
+                fi
+        else
+                acpi_ok=1
+        fi
+}
+
+function get_percent
+{
+        percent="$(acpi)"
+        if [ "${percent:11:4}" = "Full" ]; then
+                percent=${percent:17:3}
+        elif [ "${percent:11:11}" = "Discharging" ]; then
+                percent=${percent:24:2}
+        else
+                percent=${percent:21:2}
+        fi
+}
+
+verify
+if [ $acpi_ok -ne 0 ]; then
+        banner
+        echo -e "\e[${colors[0]}$name: No se ha podido localizar: ACPI. ¿Está seguro que está instalado?\n"
+        exit 1
+fi
+
+if [ $pm_ok -ne 0 ]; then
+        banner
+        echo -e "\e[${colors[0]}$name: No se ha podido localizar: PM-SUSPEND (pm-utils). ¿Está seguro que está instalado?\n"
+        exit 1
+fi
+
+clear
+count=0
+
+if [ "$verbose" = "yes" ]; then
+        banner
+fi
+
+if [ "${path:${#path}-1:${#path}}" = "/" ]; then
+        path="${path:0:${#path}-1}"
+fi
+
+if [ -f "$path/Brookienergy.log" ]; then
+        echo >> "$path/Brookienergy.log"
+fi
+
+echo "$(date) - Se ejecutó $name" >> "$path/Brookienergy.log"
+
+while true; do
+        get_percent
+        if [ $percent -le 15 ]; then
+                if [ "$verbose" = "yes" ]; then
+                        echo -e "\n\e[${colors[2]}$name: Suspendiendo el sistema por escasa energía..."
+                        echo -ne "\e[${colors[0]}("
+                fi
+                for ((i=5; i>=1; i--)); do
+                        if [ $i -gt 1 ]; then
+                                if [ "$verbose" = "yes" ]; then
+                                        echo -n "$i, "
+                                fi
+                        else
+                                if [ "$verbose" = "yes" ]; then
+                                        echo -e "$i)\n"
+                                fi
+                        fi
+                        sleep 1
+                done
+                echo "$(date) El sistema se suspenderá por escasa energía en la batería." >> "$path/Brookienergy.log"
+                break
+        elif [ $percent -lt 100 ]; then
+                if [ "$verbose" = "yes" ]; then
+                        if [ $percent -ne $old_percent ]; then
+                                echo -e "\e[${colors[1]}La batería tiene $percent% de carga."
+                                echo "$(date) - La batería tiene $percent% de carga." >> "$path/Brookienergy.log"
+                        else
+                                echo -e "\e[${colors[1]}$none_changes"
+                                echo "$(date) - $none_changes" >> "$path/Brookienergy.log"
+                        fi
+                fi
+                count=0
+        else
+                if [ "$verbose" = "yes" ]; then
+                        if [ $count -eq 0 ]; then
+                                echo -e "\e[${colors[1]}La carga de la batería está completa."
+                                echo "$(date) - La batería tiene carga completa." >> "$path/Brookienergy.log"
+                        else
+                                echo -e "\e[${colors[1]}$none_changes"
+                                echo "$(date) - $none_changes" >> "$path/Brookienergy.log"
+                        fi
+                fi
+                ((count++))
+        fi
+        old_percent=$percent
+        sleep 15
+done
+
+pm-suspend
+
