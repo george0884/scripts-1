@@ -32,7 +32,7 @@ name_ascii="
 
 function banner
 {
-        echo -e "\e[${colors[3]}$name_ascii"
+        echo -e "\e[${colors[3]}$name_ascii\e[0m"
 }
 
 function get_help
@@ -47,7 +47,7 @@ function get_help
         echo -e "-p <ruta>\tAlmacena registro/log en la ruta especificada. En caso de no especificar"
         echo -e "\t\tla ruta, se toma la carpeta personal del usuario que ejecuta $name."
         echo -e "-h\t\tMuestra esta página de ayuda y sale."
-        echo -e "-v\t\tHabilita el modo verboso (Muestra registro/log en la salida estándar).\n"
+        echo -e "-v\t\tHabilita el modo verboso (Muestra registro/log en la salida estándar).\e[0m\n"
 }
 
 while getopts "p:hv" flag; do
@@ -57,11 +57,13 @@ while getopts "p:hv" flag; do
                                 if [ -x "$OPTARG" ]; then
                                         path="$OPTARG"
                                 else
-                                        echo -e "\n\e[${colors[0]}$name: Error: No se puede acceder a: $OPTARG.\n"
+                                        banner
+                                        echo -e "\n\e[${colors[0]}$name: Error: No se puede acceder a: $OPTARG.\e[0m\n"
                                         exit 1
                                 fi
                         else
-                                echo -e "\n\e[${colors[0]}$name: Error: $OPTARG no es un directorio.\n"
+                                banner
+                                echo -e "\n\e[${colors[0]}$name: Error: $OPTARG no es un directorio.\e[0m\n"
                                 exit 1
                         fi
                         ;;
@@ -73,11 +75,11 @@ while getopts "p:hv" flag; do
                         if [ -z "$verbose" ]; then
                                 verbose="yes"
                         else
-                                echo -e "\e[${colors[2]}$name: Modo verboso: Sólo es necesario uno.\n"
+                                echo -e "\e[${colors[2]}$name: Modo verboso: Sólo es necesario uno.\e[0m\n"
                         fi
                         ;;
                 \?)
-                        echo -e "\n\e[${colors[0]}$name: Error: Parámetro desconocido.\n"
+                        echo -e "\n\e[${colors[0]}$name: Error: Parámetro desconocido.\e[0m\n"
                         exit 1
                         ;;
         esac
@@ -109,16 +111,22 @@ function get_percent
         fi
 }
 
+if [ "$USER" != "root" ]; then
+        banner
+        echo -e "\e[${colors[0]}$name: Se necesitan permisos de super usuario.\e[0m\n"
+        exit 1
+fi
+
 verify
 if [ $acpi_ok -ne 0 ]; then
         banner
-        echo -e "\e[${colors[0]}$name: No se ha podido localizar: ACPI. ¿Está seguro que está instalado?\n"
+        echo -e "\e[${colors[0]}$name: No se ha podido localizar: ACPI. ¿Está seguro que está instalado?\e[0m\n"
         exit 1
 fi
 
 if [ $pm_ok -ne 0 ]; then
         banner
-        echo -e "\e[${colors[0]}$name: No se ha podido localizar: PM-SUSPEND (pm-utils). ¿Está seguro que está instalado?\n"
+        echo -e "\e[${colors[0]}$name: No se ha podido localizar: PM-SUSPEND (pm-utils). ¿Está seguro que está instalado?\e[0m\n"
         exit 1
 fi
 
@@ -139,11 +147,12 @@ fi
 
 echo "$(date) - Se ejecutó $name" >> "$path/Brookienergy.log"
 
+old_percent=0
 while true; do
         get_percent
         if [ $percent -le 15 ]; then
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\n\e[${colors[2]}$name: Suspendiendo el sistema por escasa energía..."
+                        echo -e "\n\e[${colors[2]}$name: Suspendiendo el sistema por escasa energía...\e[0m"
                         echo -ne "\e[${colors[0]}("
                 fi
                 for ((i=5; i>=1; i--)); do
@@ -153,7 +162,7 @@ while true; do
                                 fi
                         else
                                 if [ "$verbose" = "yes" ]; then
-                                        echo -e "$i)\n"
+                                        echo -e "$i)\e[0m\n"
                                 fi
                         fi
                         sleep 1
@@ -163,10 +172,10 @@ while true; do
         elif [ $percent -lt 100 ]; then
                 if [ "$verbose" = "yes" ]; then
                         if [ $percent -ne $old_percent ]; then
-                                echo -e "\e[${colors[1]}La batería tiene $percent% de carga."
+                                echo -e "\e[${colors[1]}La batería tiene $percent% de carga.\e[0m"
                                 echo "$(date) - La batería tiene $percent% de carga." >> "$path/Brookienergy.log"
                         else
-                                echo -e "\e[${colors[1]}$none_changes"
+                                echo -e "\e[${colors[1]}$none_changes\e[0m"
                                 echo "$(date) - $none_changes" >> "$path/Brookienergy.log"
                         fi
                 fi
@@ -174,10 +183,10 @@ while true; do
         else
                 if [ "$verbose" = "yes" ]; then
                         if [ $count -eq 0 ]; then
-                                echo -e "\e[${colors[1]}La carga de la batería está completa."
+                                echo -e "\e[${colors[1]}La carga de la batería está completa.\e[0m"
                                 echo "$(date) - La batería tiene carga completa." >> "$path/Brookienergy.log"
                         else
-                                echo -e "\e[${colors[1]}$none_changes"
+                                echo -e "\e[${colors[1]}$none_changes\e[0m"
                                 echo "$(date) - $none_changes" >> "$path/Brookienergy.log"
                         fi
                 fi
