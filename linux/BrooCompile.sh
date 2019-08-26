@@ -24,8 +24,8 @@ name="BrooCompile"
 cores=$(cat /proc/cpuinfo | grep "cpu cores")
 cores=${cores:${#cores}-1:${#cores}}
 cores=$((cores*2))
-# Colors: In there order: White, Red, Green, Cyan
-colors=("1;37m" "1;31m" "1;32m" "1;36m")
+# Colors: In there order: White, Red, Green, Cyan, the final and purple
+colors=("\e[1;37m" "\e[1;31m" "\e[1;32m" "\e[1;36m" "\e[0m" "\e[1;35m")
 # Banner's
 vBanner="
    ____                   ______                      _ __
@@ -38,7 +38,7 @@ vBanner="
 
 function banner()
 {
-        echo -e "\e[${colors[2]}$vBanner"
+        echo -e "${colors[5]}$vBanner${colors[4]}"
 }
 
 clear
@@ -46,18 +46,18 @@ banner
 
 function warning()
 {
-        echo -e "\e[${colors[1]}$name: La cantidad de hilos que ha decidido utilizar es $threads, sin embargo su"
-        echo "procesador solo cuenta con $cores hilos. Esta configuracion no se recomienda."
+        echo -e "${colors[1]}$name: La cantidad de hilos que ha decidido utilizar es $threads, sin embargo su"
+        echo "procesador solo cuenta con $cores hilos. Esta configuracion no se recomienda.${colors[4]}"
 }
 
 function warning_ignore()
 {
-        echo -e "\n\e[${colors[1]}$name: $1: Sólo uno es necesario. Ignorando los demás...\n"
+        echo -e "\n${colors[1]}$name: $1: Sólo uno es necesario. Ignorando los demás...${colors[4]}\n"
 }
 
 function get_help()
 {
-        echo -e "\e[${colors[3]}BrooCompile es un script para compilar el núcleo linux, instalar los módulos, instalar el núcleo,"
+        echo -e "${colors[3]}BrooCompile es un script para compilar el núcleo linux, instalar los módulos, instalar el núcleo,"
         echo "(re)generar un archivo initramfs con o sin soporte para LUKS y/o LVM y (re)generar un archivo de "
         echo "configuración de GRUB."
         echo -e "\nOpciones disponibles:\n"
@@ -70,19 +70,19 @@ function get_help()
         echo -e "\t\t\t\trealiza una tarea. En caso contrario, sólo muestra información sobre la salida"
         echo -e "\t\t\t\tdel programa utilizado para realizar la tarea. Esta regla sólo se rompe si se produce un error.\n"
         echo -e "Si no utiliza opción alguna BrooCompile trabajará con las opciones predeterminadas."
-        echo -e "Estas son: LUKS = No, LVM = No, Hilos = $cores.\n"
+        echo -e "Estas son: LUKS = No, LVM = No, Hilos = $cores${colors[4]}.\n"
 }
 
 function get_info()
 {
-        echo -e "\e[${colors[3]}Nombre: $name\n"
+        echo -e "${colors[3]}Nombre: $name\n"
         echo -e "Versión: 0.0.1\n"
         echo -e "Licencia: GNU GPL v2\n"
         echo -e "Software utilizado para el desarrollo de este programa: VIM 8.1\n"
         echo -e "Autor: Lord Brookie\n"
         echo -e "Repositorio(s) del proyecto:\n"
         echo "Github: https://github.com/brookiestein/scripts/tree/master/$name/"
-        echo -e "GitLab: https://gitlab.com/LordBrookie/scripts/tree/master/$name/\n"
+        echo -e "GitLab: https://gitlab.com/LordBrookie/scripts/tree/master/$name/${colors[4]}\n"
 }
 
 function verify()
@@ -90,49 +90,50 @@ function verify()
         cd "$sources"
         if [ $? -eq 0 ]; then
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\n\e[${colors[2]}Buscando archivo de configuración..."; sleep 2
+                        echo -e "\n${colors[2]}Buscando archivo de configuración...${colors[4]}"; sleep 2
                 fi
                 if [ ! -f ".config" ]; then
                         if [ "$verbose" = "yes" ]; then
-                                echo -e "\n\e[${colors[2]}Archivo de configuración no encontrado.";
-                                echo -e "Buscando en las fuentes antiguas..."
+                                echo -e "\n${colors[1]}Archivo de configuración no encontrado.";
+                                echo -e "Buscando en las fuentes antiguas...${colors[4]}"
                         fi
                         sleep 2
                         if [ -f "$old_sources_path/.config" ]; then
                                 if [ "$verbose" = "yes" ]; then
-                                        echo -e "\n\e[${colors[2]}Archivo de configuración anterior encontrado.\nCopiando a las nuevas fuentes..."
+                                        echo -e "\n${colors[2]}Archivo de configuración anterior encontrado.${colors[4]}"
+                                        echo -e "${colors[2]}Copiando a las nuevas fuentes...${colors[4]}"
                                 fi
                                 sleep 2
                                 cp "$old_sources_path/.config" "$sources"
                                 if [ $? -ne 0 ]; then
-                                        echo -e "\e[${colors[1]}$name: No se ha podido copiar el archivo de configuración "
+                                        echo -e "${colors[1]}$name: No se ha podido copiar el archivo de configuración "
                                         echo "desde las fuentes anteriores."
                                         echo "Por favor, verifique la existencia de este archivo o proceda a realizar la"
-                                        echo -e "configuración correspondiente, p.e (make menuconfig/gconfig, etc.)\n"
+                                        echo -e "configuración correspondiente, p.e (make menuconfig/gconfig, etc.)${colors[4]}\n"
                                         status=1
                                 else
                                         if [ "$verbose" = "yes" ]; then
-                                                echo -e "\e[${colors[2]}Sincronizando configuración anterior...\n"
+                                                echo -e "${colors[2]}Sincronizando configuración anterior...${colors[4]}\n"
                                         fi
                                         sleep 2
                                         make olddefconfig
                                         if [ $? -eq 0 ]; then
                                                 if [ "$verbose" = "yes" ]; then
-                                                        echo -e "\n\e[${colors[2]}Sincronización realizada exitosamente.\n"
+                                                        echo -e "\n${colors[2]}Sincronización realizada exitosamente.${colors[4]}\n"
                                                 fi
                                                 status=0
                                         else
-                                                echo -e "\n\e[${colors[1]}$name: Ha ocurrido un error al sincronizar las configuraciones "
-                                                echo -e "anteriores con las nuevas.\n"
+                                                echo -e "\n${colors[1]}$name: Ha ocurrido un error al sincronizar las configuraciones "
+                                                echo -e "anteriores con las nuevas.${colors[4]}\n"
                                                 status=1
                                         fi
                                 fi
                         else
-                                echo -ne "\n\e[${colors[1]}No se ha encontrado el archivo de configuración para compilar "
-                                echo -e "las fuentes en:\n$sources o $sources-$(uname -r)."
-                                echo "Por favor, verifique la existencia de este archivo o proceda a realizar"
-                                echo -e "la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)\n"
-                                echo -e "\e[${colors[0]}Le ofrezco dos opciones:"
+                                echo -ne "\n${colors[1]}No se ha encontrado el archivo de configuración para compilar "
+                                echo -e "las fuentes en:\n$sources o $sources-$(uname -r)${colors[4]}."
+                                echo -e "${colors[3]}Por favor, verifique la existencia de este archivo o proceda a realizar"
+                                echo -e "la configuración correspondiente, p.e (make menuconfig/gconfig, etc.)${colors[4]}\n"
+                                echo -e "${colors[0]}Le ofrezco dos opciones:"
                                 echo "1-Utilizar la herramienta Genkernel o"
                                 echo "2-Ofrecerme la ruta en la que pueda "
                                 echo "encontrar un archivo de configuración"
@@ -144,18 +145,19 @@ function verify()
                                 PS3=">>> Su elección: "
                                 select opt in ${options[@]}; do
                                         if [ "$opt" = "$g" ]; then
-                                                echo -e "\n\e[${colors[2]}Utilizando la herramienta Genkernel..."
+                                                echo -e "\n${colors[2]}Utilizando la herramienta Genkernel...${colors[4]}"
                                                 status=1
                                                 break
                                         elif [ "$opt" = "$d" ]; then
                                                 while true; do
-                                                        echo -ne "\n\e[${colors[0]}Introduzca la ruta en la que "
-                                                        echo -ne "pueda encontrar un archivo de configuración válido: "
+                                                        echo -ne "\n${colors[0]}Introduzca la ruta en la que "
+                                                        echo -ne "pueda encontrar un archivo de configuración válido: ${colors[4]}"
                                                         read path
                                                         if [ -z "$path" ]; then
-                                                                echo -e "\n\e[${colors[1]}$name: No ha introducido nada.\n"
+                                                                echo -e "\n${colors[1]}$name: No ha introducido nada.${colors[4]}\n"
                                                         elif [ ! -d "$path" ]; then
-                                                                echo -e "\n\e[${colors[1]}$name: El directorio: \"$path\" no existe."
+                                                                echo -en "\n${colors[1]}$name: El directorio: \"$path\" "
+                                                                echo -en "o existe.${colors[4]}"
                                                         else
                                                                 if [ "${path:${#path}-1:${#path}}" != "/" ]; then
                                                                         path+="/"
@@ -164,48 +166,52 @@ function verify()
                                                                 for i in $dirs; do
                                                                         if [ "$i" = ".config" ]; then
                                                                                 if [ -f "$path$i" ]; then
-                                                                                        echo -ne "\n\e[${colors[2]}Archivo "
-                                                                                        echo "de configuración encontrado."
-                                                                                        echo "Copiando archivo a: $sources..."; sleep 2
+                                                                                        echo -ne "\n${colors[2]}Archivo "
+                                                                                        echo "de configuración encontrado.${colors[4]}"
+                                                                                        echo -en "${colors[3]}Copiando archivo a: "
+                                                                                        echo -e "$sources...${colors[4]}"; sleep 2
                                                                                         cp "$path$i" "$sources"
                                                                                         if [ $? -eq 0 ]; then
-                                                                                                echo -ne "\n\e[${colors[2]}$name: "
-                                                                                                echo "Copia realizada con éxito."
+                                                                                                echo -ne "\n${colors[2]}$name: "
+                                                                                                echo "Copia realizada con éxito.${colors[4]}"
                                                                                                 if [ "$verbose" = "yes" ]; then
-                                                                                                        echo -ne "\e[${colors[2]}"
+                                                                                                        echo -ne "${colors[2]}"
                                                                                                         echo -n "Sincronizando "
                                                                                                         echo -n "configuración "
-                                                                                                        echo -e "anterior...\n"
+                                                                                                        echo -e "anterior...${colors[4]}\n"
                                                                                                 fi
                                                                                                 sleep 2
                                                                                                 make olddefconfig
                                                                                                 if [ $? -eq 0 ]; then
                                                                                                         if [ "$verbose" = "yes" ]; then
-                                                                                                                echo -ne "\n\e[1;23m"
+                                                                                                                echo -ne "\n${colors[2]}"
                                                                                                                 echo -n "Sincronización "
                                                                                                                 echo -n "realizada "
                                                                                                                 echo -e "exitosamente.\n"
+                                                                                                                echo -e "${colors[4]}"
                                                                                                         fi
                                                                                                         status=0
                                                                                                 else
-                                                                                                        echo -ne "\n\e[${colors[1]}$name:"
+                                                                                                        echo -ne "\n${colors[1]}$name:"
                                                                                                         echo -n " Ha ocurrido un error "
                                                                                                         echo -n "al sincronizar las "
                                                                                                         echo -n "configuraciones "
                                                                                                         echo -n "anteriores con las "
-                                                                                                        echo -e "nuevas.\n"
+                                                                                                        echo -e "nuevas.${colors[4]}\n"
                                                                                                         status=1
                                                                                                 fi
                                                                                                 status=0
                                                                                                 break
                                                                                         else
-                                                                                                echo -ne "\n\e[${colors[1]}$name: Ha "
+                                                                                                echo -ne "\n${colors[1]}$name: Ha "
                                                                                                 echo -e "ocurrido un error en la copia.\n"
+                                                                                                echo -e "${colors[4]}"
                                                                                                 exit 1
                                                                                         fi
                                                                                 else
-                                                                                        echo -ne "\n\e[${colors[1]}$name: $i "
+                                                                                        echo -ne "\n${colors[1]}$name: $i "
                                                                                         echo -e "no es un archivo de configuración.\n"
+                                                                                        echo -e "${colors[4]}"
                                                                                         exit 1
                                                                                 fi
                                                                         else
@@ -216,13 +222,14 @@ function verify()
                                                                 if [ $((status)) -eq 0 ]; then
                                                                         break
                                                                 else
-                                                                        echo -ne "\n\e[${colors[1]}$name: No se pudo encontrar un "
+                                                                        echo -ne "\n${colors[1]}$name: No se pudo encontrar un "
                                                                         echo -e "archivo de configuración en: \e[${colors[0]}$path"
+                                                                        echo -e "${colors[4]}"
                                                                 fi
                                                         fi
                                                 done
                                         else
-                                                echo -e "\n\e[${colors[1]}$name: Opción no válida.\n"
+                                                echo -e "\n${colors[1]}$name: Opción no válida.${colors[4]}\n"
                                         fi
 
                                         if [ $((status)) -eq 0 ]; then
@@ -232,13 +239,13 @@ function verify()
                         fi
                 else
                         if [ "$verbose" = "yes" ]; then
-                                echo -e "\n\e[${colors[2]}Archivo de configuración encontrado."
+                                echo -e "\n${colors[3]}Archivo de configuración encontrado.${colors[4]}"
                         fi
                         sleep 2
                         status=0
                 fi
         else
-                echo -e "\n\e[${colors[1]}$name: Ha ocurrido un error al entrar en el directorio de las fuentes.\n"; exit 1
+                echo -e "\n${colors[1]}$name: Ha ocurrido un error al entrar en el directorio de las fuentes.${colors[4]}\n"; exit 1
         fi
 }
 
@@ -253,7 +260,7 @@ function get_threads()
                 elif [ -z "$ask" ]; then
                         break
                 elif [[ "$ask" != "s" && "$ask" != "si" && "$ask" != "y" && "$ask" != "yes" && "$ask" != "n" && "$ask" != "no" ]]; then
-                        echo -e "\n\e[${colors[1]}$name: Respuesta: \"$ask\" no válida.\n"
+                        echo -e "\n${colors[1]}$name: Respuesta: \"$ask\" no válida.${colors[4]}\n"
                 else
                         break
                 fi
@@ -268,7 +275,7 @@ function get_threads()
                 if [ $? -eq 0 ]; then
                         break
                 else
-                        echo -e "\n\e[${colors[1]}$name: La cantidad de hilos especificada no es válida.\n"
+                        echo -e "\n${colors[1]}$name: La cantidad de hilos especificada no es válida.${colors[4]}\n"
                 fi
         done
 }
@@ -276,7 +283,7 @@ function get_threads()
 function print_options()
 {
         if [ "$verbose" = "yes" ]; then
-                echo -e "\n\e[${colors[0]}$name: Trabajando con las opciones:"
+                echo -e "\n${colors[0]}$name: Trabajando con las opciones:"
                 if [ "$lvm" = "yes" ]; then
                         echo -n "LVM = Sí, "
                 else
@@ -289,7 +296,7 @@ function print_options()
                         echo -n "LUKS = No, "
                 fi
 
-                echo -e "Hilos = $threads\n"
+                echo -e "Hilos = $threads${colors[4]}\n"
         fi
 }
 
@@ -307,10 +314,10 @@ function work_with_genkernel()
 
         if [ $? -eq 0 ]; then
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\n\e[${colors[2]}$name: Trabajo finalizado.\n"
+                        echo -e "\n${colors[2]}$name: Trabajo finalizado.${colors[4]}\n"
                 fi
         else
-                echo -e "\n\e[${colors[1]}$name: Ocurrió un error al realizar el trabajo con la herramienta: Genkernel.\n"
+                echo -e "\n${colors[1]}$name: Ocurrió un error al realizar el trabajo con la herramienta: Genkernel.${colors[4]}\n"
                 exit 1
         fi
 }
@@ -327,13 +334,13 @@ function verify_threads()
                         fi
                 done
                 if [ $threads -le 0 ]; then
-                        echo -e "\n\e[${colors[1]}$name: La cantidad de hilos especificada no es válida."
-                        echo -e "\e[${colors[2]}Utilizando: $cores...\n"
+                        echo -e "\n${colors[1]}$name: La cantidad de hilos especificada no es válida.${colors[4]}"
+                        echo -e "${colors[2]}Utilizando: $cores...${colors[4]}\n"
                         threads=$cores
                 fi
         else
                 banner
-                echo -e "\n\e[${colors[1]}$name: La cantidad de hilos especificada no es válida.\n"
+                echo -e "\n${colors[1]}$name: La cantidad de hilos especificada no es válida.${colors[4]}\n"
                 exit 1
         fi
 }
@@ -378,7 +385,7 @@ while [ $# -ne 0 ]; do
                         fi
                         ;;
                 *)
-                        echo -e "\e[${colors[1]}$name: Opción: $1 no válida.\n"
+                        echo -e "${colors[1]}$name: Opción: $1 no válida.${colors[4]}\n"
                         exit 1
                         ;;
         esac
@@ -387,7 +394,7 @@ done
 
 
 if [ "$USER" != "root" ]; then
-        echo -e "\e[${colors[1]}$name: Necesito permisos de administrador para poder trabajar.\n"
+        echo -e "${colors[1]}$name: Necesito permisos de administrador para poder trabajar.${colors[4]}\n"
         exit 1
 fi
 
@@ -411,19 +418,19 @@ verify
 if [ $status -eq 0 ]; then
         if [ "$verbose" = "yes" ]; then
                 print_options
-                echo -e "\e[${colors[2]}Entrando en el directorio..."
+                echo -e "${colors[2]}Entrando en el directorio...${colors[4]}"
         fi
         sleep 2
         cd "$sources"
         if [ $? -eq 0 ]; then
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\e[${colors[2]}La compilación iniciará en 5 segundos. Puede presionar (CTRL + C) para cancelar esto."
-                        echo -en "\e[${colors[1]}("
+                        echo -e "${colors[3]}La compilación iniciará en 5 segundos. Puede presionar (CTRL + C) para cancelar esto."
+                        echo -en "${colors[1]}("
                         for ((i=5; i>=1; i--)); do
                                 if [ $i -gt 1 ]; then
                                         echo -n "$i, "
                                 else
-                                        echo -e "$i)\n"
+                                        echo -e "$i)${colors[4]}\n"
                                 fi
                                 sleep 1
                         done
@@ -436,19 +443,22 @@ if [ $status -eq 0 ]; then
                 make -j$threads
                 if [ $? -eq 0 ]; then
                         if [ "$verbose" = "yes" ]; then
-                                echo -e "\n\e[${colors[2]}Compilación del núcleo finalizada con éxito. Instalando módulos...\n"
+                                echo -e "\n${colors[2]}Compilación del núcleo finalizada con éxito.${colors[4]}"
+                                echo -e "${colors[3]}Instalando módulos...${colors[4]}\n"
                         fi
                         sleep 2
                         make modules_install
                         if [ $? -eq 0 ]; then
                                 if [ "$verbose" = "yes" ]; then
-                                        echo -e "\n\e[${colors[2]}Instalación de módulos finalizada con éxito. Instalando núcleo...\n"
+                                        echo -e "\n${colors[2]}Instalación de módulos finalizada con éxito.${colors[4]}"
+                                        echo -e "${colors[3]}Instalando núcleo...${colors[4]}\n"
                                 fi
                                 sleep 2
                                 make install
                                 if [ $? -eq 0 ]; then
                                         if [ "$verbose" = "yes" ]; then
-                                                echo -e "\n\e[${colors[2]}Instalación de núcleo finalizada con éxito. (Re)generando initramfs..."
+                                                echo -e "\n${colors[2]}Instalación de núcleo finalizada con éxito.${colors[4]}"
+                                                echo -e "${colors[3]}(Re)generando initramfs...${colors[4]}\n"
                                         fi
                                         sleep 2
                                         if [[ "$lvm" = "yes" && "$luks" = "yes" ]]; then
@@ -463,44 +473,46 @@ if [ $status -eq 0 ]; then
 
                                         if [ $? -eq 0 ]; then
                                                 if [ "$verbose" = "yes" ]; then
-                                                        echo -e "\n\e[${colors[2]}(Re)generación de initramfs finalizada con éxito. "
-                                                        echo -e "(Re)generando fichero de configuración de GRUB...\n"
+                                                        echo -e "\n${colors[2]}(Re)generación de initramfs finalizada con éxito.${colors[4]}"
+                                                        echo -e "${colors[3]}(Re)generando fichero de configuración de GRUB...${colors[4]}\n"
                                                 fi
                                                 sleep 2
                                                 grub-mkconfig -o "$boot/grub/grub.cfg"
                                                 if [ $? -eq 0 ]; then
                                                         if [ "$verbose" = "yes" ]; then
-                                                                echo -ne "\n\e[${colors[2]}(Re)generación de fichero de configuración "
-                                                                echo -e "de GRUB finalizado con éxito.\n¡Trabajo finalizado!\n"
+                                                                echo -ne "\n${colors[2]}(Re)generación de fichero de configuración "
+                                                                echo -e "de GRUB finalizado con éxito.${colors[4]}"
+                                                                echo -e "${colors[3]}¡Trabajo finalizado!\n${colors[4]}"
                                                         fi
                                                 else
-                                                        echo -ne "\n\e[${colors[1]}$name: Ocurrió un error en la "
+                                                        echo -ne "\n${colors[1]}$name: Ocurrió un error en la "
                                                         echo -ne "(re)generación del fichero de "
-                                                        echo -e "configuración de GRUB. Por lo que no se podrá continuar"
+                                                        echo -e "configuración de GRUB. Por lo que no se podrá continuar.${colors[4]}"
                                                         exit 1
                                                 fi
                                         else
-                                                echo -ne "\n\e[${colors[1]}$name: Ocurrió un error en la (re)generación "
-                                                echo -ne "del initramfs por lo que no se podrá continuar.\n"
+                                                echo -ne "\n${colors[1]}$name: Ocurrió un error en la (re)generación "
+                                                echo -ne "del initramfs por lo que no se podrá continuar.${colors[4]}\n"
                                                 exit 1
                                         fi
                                 else
-                                        echo -ne "\n\e[${colors[1]}$name: Ocurrió un error en la instalación "
-                                        echo -e "del núcleo por lo que no se podrá continuar.\n"
+                                        echo -ne "\n${colors[1]}$name: Ocurrió un error en la instalación "
+                                        echo -e "del núcleo por lo que no se podrá continuar.${colors[4]}\n"
                                         exit 1
                                 fi
                         else
-                                echo -ne "\n\e[${colors[1]}$name: Ocurrió un error en la instalación "
-                                echo -e "de los módulos por lo que no se podrá continuar.\n"
+                                echo -ne "\n${colors[1]}$name: Ocurrió un error en la instalación "
+                                echo -e "de los módulos por lo que no se podrá continuar.${colors[4]}\n"
                                 exit 1
                         fi
                 else
-                        echo -ne "\n\e[${colors[1]}$name: Ocurrió un error en la compilación del núcleo por lo que "
-                        echo -e "no se podrá continuar.\n"
+                        echo -ne "\n${colors[1]}$name: Ocurrió un error en la compilación del núcleo por lo que "
+                        echo -e "no se podrá continuar.${colors[4]}\n"
                         exit 1
                 fi
         else
-                echo -ne "\n\e[${colors[1]}$name: No se pudo entrar en el directorio de las fuentes por lo que no se podrá continuar.\n"
+                echo -ne "\n${colors[1]}$name: No se pudo entrar en el directorio de las fuentes por lo que "
+                echo -e "no se podrá continuar.${colors[4]}\n"
                 exit 1
         fi
 else
