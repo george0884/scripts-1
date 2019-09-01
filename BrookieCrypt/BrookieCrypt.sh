@@ -91,6 +91,9 @@ while getopts "cdf:hv" opt; do
                         if [ -d "$OPTARG" ]; then
                                 if [ -x "$OPTARG" ]; then
                                         file="$OPTARG"
+                                        if [ "${file:${#file}-1:${#file}}" = "/" ]; then
+                                                file="${file:0:${#file}-1}"
+                                        fi
                                         directory="yes"
                                 else
                                         echo -e "${colors[0]}$name: No se puede acceder a: $OPTARG${colors[6]}\n"
@@ -194,6 +197,16 @@ if [ "$crypt" = "yes" ]; then
                 exit 1
         elif [ "$verbose" = "yes" ]; then
                 echo -e "\n${colors[1]}¡Firma GPG creada con éxito!${colors[6]}"
+                echo -e "\n${colors[4]}Destruyendo archivo comprimido...${colors[6]}"
+        fi
+
+        shred -zu "$name_zip"
+
+        if [ $? -ne 0 ]; then
+                error "la destrucción del archivo comprimido."
+                exit 1
+        elif [ "$verbose" = "yes" ]; then
+                echo -e "\n${colors[1]}¡El archivo comprimido ha sido destruido exitosamente!${colors[6]}"
         fi
 
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
