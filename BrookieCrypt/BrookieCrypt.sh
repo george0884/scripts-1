@@ -30,7 +30,7 @@ banner="
 
 function print_banner
 {
-        echo -e "${colors[3]}$banner"
+        echo -e "${colors[3]}$banner${colors[6]}"
 }
 
 function show_help
@@ -38,14 +38,15 @@ function show_help
         echo -e "${colors[3]}Opciones disponibles:\n${colors[5]}"
         echo -e "-c\tCifra un archivo o directorio."
         echo -e "-d\tDescifra un archivo."
-        echo -e "-f\tEspecifica el archivo a (des)cifrar."
+        echo -e "-f\tEspecifica el archivo o directorio a (des)cifrar. ${colors[0]}(Requerido)${colors[5]}"
         echo -e "-h\tMuestra esta página de ayuda y sale."
-        echo -e "-v\tMuestra información sobre cada paso que realiza.\n${colors[6]}"
+        echo -e "-v\tMuestra información sobre cada paso que realiza."
+        echo -e "-y\tAsume que está de acuerdo con la eliminación del archivo fuente de cifrado.\n${colors[6]}"
 }
 
 function warning
 {
-        echo -e "${colors[0]}$name: Confusión: $1: Sólo es necesario uno.${colors[6]}\n"
+        echo -e "${colors[0]}$name: $1: Sólo es necesario uno.${colors[6]}\n"
 }
 
 function confution
@@ -61,7 +62,7 @@ function error
 clear
 print_banner
 
-while getopts "cdf:hv" opt; do
+while getopts "cdf:hvy" opt; do
         case "$opt" in
                 c)
                         if [ -z "$decrypt" ]; then
@@ -117,8 +118,15 @@ while getopts "cdf:hv" opt; do
                                 warning "Modo verboso"
                         fi
                         ;;
+                y)
+                        if [ -z "$agreement" ]; then
+                                agreement="yes"
+                        else
+                                warning "Eliminación de archivo fuente"
+                        fi
+                        ;;
                 \?)
-                        echo -e "Opción desconocida.\n"
+                        echo -e "${colors[0]}Opción desconocida.\n"
                         exit 1
                         ;;
         esac
@@ -207,6 +215,42 @@ if [ "$crypt" = "yes" ]; then
                 exit 1
         elif [ "$verbose" = "yes" ]; then
                 echo -e "\n${colors[1]}¡El archivo comprimido ha sido destruido exitosamente!${colors[6]}"
+        fi
+
+        if [ -z "$agreement" ]; then
+                while true; do
+                        echo -ne "${colors[3]}¿Desea eliminar el(los) archivo(s) fuente de cifrado? [S/n] (Sí por defecto): "
+                        read -t 20 agreement
+                        if [ -z "$agreement" ]; then
+                                agreement="yes"
+                                break
+                        elif [[ "$agreement" != "s" && "$agreement" != "si" && "$agreement" != "y" &&
+                                "$agreement" != "yes" && "$agreement" != "n" && "$agreement" != "no" ]]; then
+                                echo -e "${colors[0]}La respuesta: \"$agreement\" no es válida."
+                        else
+                                break
+                        fi
+                done
+        fi
+
+        if [[ "$agreement" = "yes" || "$agreement" = "y" || "$agreement" = "s" || "$agreement" = "si" ]]; then
+                if [ "$verbose" = "yes" ]; then
+                        echo -e "\n${colors[4]}Destruyendo fichero(s) fuente de cifrado...${colors[6]}"
+                fi
+
+                if [ "$directory" = "yes" ]; then
+                        shred -zu "$file/*"
+                        rm -rf "$file"
+                else
+                        shred -zu "$file"
+                fi
+
+                if [ $? -ne 0 ]; then
+                        error "la destrucción del fichero fuente de cifrado."
+                        exit 1
+                elif [ "$verbose" = "yes" ]; then
+                        echo -e "\n${colors[1]}¡Fichero(s) fuente de cifrado destruido(s) con éxito!${colors[6]}"
+                fi
         fi
 
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
