@@ -27,3 +27,37 @@ GnuPG (GPG)
 GNU Core Utils
 ```
 
+**Opciones disponibles:**
+```
+-c      Cifra un archivo o directorio.
+-d      Descifra un archivo.
+-f      Especifica el archivo o directorio a (des)cifrar. (Requerido)
+-h      Muestra esta página de ayuda y sale.
+-v      Muestra información sobre cada paso que realiza, si no se especifica, se realiza el trabajo en "silencio".
+-y      Asume que está de acuerdo con la eliminación del archivo fuente de cifrado.
+```
+
+**Cómo instalar dependencias:**
+
+**Debian (y derivadas):**
+```
+$ sudo apt update
+$ sudo apt install coreutils zip gpg
+```
+
+**Fedora (y similares):**
+```
+$ sudo dnf update
+$ sudo dnf install coreutils zip gpg
+```
+
+**Arch Linux (y derivadas):**
+```
+$ sudo pacman -Syy
+$ sudo pacman -S coreutils zip gpg
+```
+
+**Gentoo (y derivadas):**
+```
+$ sudo emerge coreutils zip gpg
+```
