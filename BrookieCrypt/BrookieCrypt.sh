@@ -59,6 +59,52 @@ function error
         echo -e "${colors[0]}$name: Ocurrió un error en $1${colors[6]}\n"
 }
 
+function ask_agreement
+{
+        while true; do
+                echo -ne "${colors[3]}$1"
+                read -t 20 agreement
+                if [ -z "$agreement" ]; then
+                        agreement="yes"
+                        break
+                elif [[ "$agreement" != "s" && "$agreement" != "si" && "$agreement" != "y" &&
+                        "$agreement" != "yes" && "$agreement" != "n" && "$agreement" != "no" ]]; then
+                        echo -e "${colors[0]}La respuesta: \"$agreement\" no es válida."
+                else
+                        break
+                fi
+        done
+}
+
+# Espera 3 argumentos: 1) Nombre de archivo o carpeta; 2) Mensaje
+# a imprimir en modo verboso; y, 3) Mensaje a imprimir en caso de error.
+function destroy_files
+{
+        if [[ "$agreement" = "yes" || "$agreement" = "y" || "$agreement" = "s" || "$agreement" = "si" ]]; then
+                if [ "$verbose" = "yes" ]; then
+                        echo -e "\n${colors[4]}Destruyendo $2...${colors[6]}"
+                fi
+
+                if [[ "$directory" = "yes" && "$2" != "Archivo comprimido" ]]; then
+                        find "$1" -type f -exec shred -zu file '{}' \; 2> /dev/null
+                        rm -rf "$1"
+                else
+                        shred -zu "$1"
+                fi
+
+                if [ $? -ne 0 ]; then
+                        error "$3"
+                        exit 1
+                elif [ "$verbose" = "yes" ]; then
+                        echo -e "${colors[1]}¡$2 destruido(s) con éxito!${colors[6]}"
+                fi
+        fi
+
+        if [ -z "$argument" ]; then
+                unset agreement
+        fi
+}
+
 clear
 print_banner
 
@@ -121,6 +167,7 @@ while getopts "cdf:hvy" opt; do
                 y)
                         if [ -z "$agreement" ]; then
                                 agreement="yes"
+                                argument="yes"
                         else
                                 warning "Eliminación de archivo fuente"
                         fi
@@ -138,7 +185,7 @@ if [[ -z "$crypt" && -z "$decrypt" ]]; then
 fi
 
 if [ -z "$file" ]; then
-        echo -e "${colors[0]}$name: No especificó archivo a (des)cifrar.${colors[6]}\n"
+        echo -e "${colors[0]}$name: No especificó archivo o directorio a (des)cifrar.${colors[6]}\n"
         exit 1
 fi
 
@@ -159,7 +206,7 @@ if [ "$crypt" = "yes" ]; then
                 error "la compresión de: ${colors[2]}\"$file\""
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Compresión de: ${colors[2]}\"$file\" ${colors[1]}completada con éxito!${colors[6]}"
+                echo -e "${colors[1]}¡Compresión de: ${colors[2]}\"$file\" ${colors[1]}completada con éxito!${colors[6]}"
                 echo -e "\n${colors[4]}Cifrando...${colors[6]}"
         fi
 
@@ -169,7 +216,7 @@ if [ "$crypt" = "yes" ]; then
                 error "el cifrado de: $name_zip"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Cifrado finalizado!${colors[6]}"
+                echo -e "${colors[1]}¡Cifrado finalizado!${colors[6]}"
                 echo -e "\n${colors[4]}Creando suma de comprobación: sha256...${colors[6]}"
         fi
 
@@ -179,7 +226,7 @@ if [ "$crypt" = "yes" ]; then
                 error "la creación de la suma de comprobación sha256"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Suma de comprobación sha256 creada con éxito!${colors[6]}"
+                echo -e "${colors[1]}¡Suma de comprobación sha256 creada con éxito!${colors[6]}"
                 echo -e "\n${colors[4]}Creando suma de comprobación: sha512...${colors[6]}"
         fi
 
@@ -192,7 +239,7 @@ if [ "$crypt" = "yes" ]; then
                 error "la creación de la suma de comprobación sha512"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Suma de comprobación sha512 creada con éxito!${colors[6]}"
+                echo -e "${colors[1]}¡Suma de comprobación sha512 creada con éxito!${colors[6]}"
                 echo -e "\n${colors[4]}Creando firma GPG...${colors[6]}"
         fi
 
@@ -204,54 +251,21 @@ if [ "$crypt" = "yes" ]; then
                 error "la creación de la firma GPG"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Firma GPG creada con éxito!${colors[6]}"
-                echo -e "\n${colors[4]}Destruyendo archivo comprimido...${colors[6]}"
+                echo -e "${colors[1]}¡Firma GPG creada con éxito!${colors[6]}"
         fi
 
-        shred -zu "$name_zip"
-
-        if [ $? -ne 0 ]; then
-                error "la destrucción del archivo comprimido."
-                exit 1
-        elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡El archivo comprimido ha sido destruido exitosamente!${colors[6]}"
-        fi
 
         if [ -z "$agreement" ]; then
-                while true; do
-                        echo -ne "${colors[3]}¿Desea eliminar el(los) archivo(s) fuente de cifrado? [S/n] (Sí por defecto): "
-                        read -t 20 agreement
-                        if [ -z "$agreement" ]; then
-                                agreement="yes"
-                                break
-                        elif [[ "$agreement" != "s" && "$agreement" != "si" && "$agreement" != "y" &&
-                                "$agreement" != "yes" && "$agreement" != "n" && "$agreement" != "no" ]]; then
-                                echo -e "${colors[0]}La respuesta: \"$agreement\" no es válida."
-                        else
-                                break
-                        fi
-                done
+                ask_agreement "\n¿Desea eliminar el archivo comprimido? [S/n] (Sí por defecto): "
         fi
 
-        if [[ "$agreement" = "yes" || "$agreement" = "y" || "$agreement" = "s" || "$agreement" = "si" ]]; then
-                if [ "$verbose" = "yes" ]; then
-                        echo -e "\n${colors[4]}Destruyendo fichero(s) fuente de cifrado...${colors[6]}"
-                fi
+        destroy_files "$name_zip" "Archivo comprimido" "la destrucción del archivo comprimido."
 
-                if [ "$directory" = "yes" ]; then
-                        shred -zu "$file/*"
-                        rm -rf "$file"
-                else
-                        shred -zu "$file"
-                fi
-
-                if [ $? -ne 0 ]; then
-                        error "la destrucción del fichero fuente de cifrado."
-                        exit 1
-                elif [ "$verbose" = "yes" ]; then
-                        echo -e "\n${colors[1]}¡Fichero(s) fuente de cifrado destruido(s) con éxito!${colors[6]}"
-                fi
+        if [ -z "$agreement" ]; then
+                ask_agreement "\n¿Desea eliminar el(los) archivo(s) fuente de cifrado? [S/n] (Sí por defecto): "
         fi
+
+        destroy_files "$file" "Fichero(s) fuente de cifrado" "la destrucción del(los) fichero(s) fuente de cifrado."
 
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
 
@@ -300,8 +314,8 @@ elif [ "$decrypt" = "yes" ]; then
                 error "el descifrado de: \"$file\""
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Descifrado exitoso!${colors[6]}"
-                echo -e "${colors[4]}Descomprimiendo...${colors[6]}"
+                echo -e "${colors[1]}¡Descifrado exitoso!${colors[6]}"
+                echo -e "\n${colors[4]}Descomprimiendo...${colors[6]}"
         fi
 
         name_zip="${file:0:${#file}-4}"
@@ -311,8 +325,15 @@ elif [ "$decrypt" = "yes" ]; then
                 error "la descompresión de: ${colors[3]}\"$name_zip\""
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "\n${colors[1]}¡Descompresión exitosa!${colors[6]}"
-                echo -e "${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
+                echo -e "${colors[1]}¡Descompresión exitosa!${colors[6]}"
         fi
+
+        if [ -z "$agreement" ]; then
+                ask_agreement
+        fi
+
+        destroy_files "$name_zip" "archivo comprimido" "la destrucción del archivo comprimido"
+
+        echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
 fi
 
