@@ -17,6 +17,9 @@
 
 # Variables
 name="BrookieCrypt"
+version="0.0.1"
+github="https://github.com/brookiestein/scripts/tree/master/$name/"
+gitlab="https://gitlab.com/LordBrookie/scripts/tree/master/$name/"
 # Colores: En este orden: Rojo, Verde, Naranja, Purpura, Cyan y Blanco.
 colors=("\e[1;31m" "\e[1;32m" "\e[1;33m" "\e[1;35m" "\e[1;36m" "\e[1;37m" "\e[0m")
 banner="
@@ -40,9 +43,27 @@ function show_help
         echo -e "-d\tDescifra un archivo."
         echo -e "-f\tEspecifica el archivo o directorio a (des)cifrar. ${colors[0]}(Requerido)${colors[5]}"
         echo -e "-h\tMuestra esta página de ayuda y sale."
+        echo -e "-i\tMuestra información sobre el programa y sale."
         echo -e "-v\tMuestra información sobre cada paso que realiza."
         echo -e "-y\tAsume que está de acuerdo con la eliminación del archivo fuente"
         echo -e "\tde cifrado o archivo comprimido (Dependiendo del caso).\n${colors[6]}"
+}
+
+function show_info
+{
+        echo -e "${colors[5]}$name es un programa encargado de comprimir un archivo o carpeta,"
+        echo "cifrar el mismo, crear sumas de comprobación Sha256 y Sha512, además de una firma GPG "
+        echo "del archivo cifrado, esto con el objetivo de verificar la integridad de los archivos "
+        echo "posteriormente, si desea descifrarlo. Su uso es relativamente sencillo, consulte la"
+        echo "opción -h para aprender sobre las opciones disponibles. $name se distribuye bajo los"
+        echo -e "términos de la licencia pública general de GNU, en su versión 2 (GNU GPL v2).\n"
+        echo -e "Nombre de software: $name\n"
+        echo -e "Autor(es): Lord Brookie\n"
+        echo -e "Versión: $version\n"
+        echo -e "Licencia: GNU GPL v2\n"
+        echo -e "Página(s) del proyecto:\n"
+        echo "GitHub: $github"
+        echo -e "GitLab: $gitlab${colors[6]}\n"
 }
 
 function warning
@@ -109,7 +130,7 @@ function destroy_files
 clear
 print_banner
 
-while getopts "cdf:hvy" opt; do
+while getopts "cdf:hivy" opt; do
         case "$opt" in
                 c)
                         if [ -z "$decrypt" ]; then
@@ -156,6 +177,10 @@ while getopts "cdf:hvy" opt; do
                         ;;
                 h)
                         show_help
+                        exit 0
+                        ;;
+                i)
+                        show_info
                         exit 0
                         ;;
                 v)
