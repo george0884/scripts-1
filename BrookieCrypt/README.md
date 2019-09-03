@@ -34,7 +34,7 @@ GNU Core Utils
 -f      Especifica el archivo o directorio a (des)cifrar. (Requerido)
 -h      Muestra esta página de ayuda y sale.
 -v      Muestra información sobre cada paso que realiza, si no se especifica, se realiza el trabajo en "silencio".
--y      Asume que está de acuerdo con la eliminación del archivo fuente de cifrado.
+-y      Asume que está de acuerdo con la eliminación del archivo fuente de cifrado o archivo comprimido (Dependiendo del caso).
 ```
 
 **Cómo instalar dependencias:**

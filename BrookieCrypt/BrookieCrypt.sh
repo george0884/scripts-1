@@ -41,7 +41,8 @@ function show_help
         echo -e "-f\tEspecifica el archivo o directorio a (des)cifrar. ${colors[0]}(Requerido)${colors[5]}"
         echo -e "-h\tMuestra esta página de ayuda y sale."
         echo -e "-v\tMuestra información sobre cada paso que realiza."
-        echo -e "-y\tAsume que está de acuerdo con la eliminación del archivo fuente de cifrado.\n${colors[6]}"
+        echo -e "-y\tAsume que está de acuerdo con la eliminación del archivo fuente"
+        echo -e "\tde cifrado o archivo comprimido (Dependiendo del caso).\n${colors[6]}"
 }
 
 function warning
