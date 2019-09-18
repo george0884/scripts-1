@@ -17,7 +17,7 @@
 
 # Variables
 name="BrookieCrypt"
-version="0.0.1"
+version="0.0.2"
 github="https://github.com/brookiestein/scripts/tree/master/$name/"
 gitlab="https://gitlab.com/LordBrookie/scripts/tree/master/$name/"
 # Colores: En este orden: Rojo, Verde, Naranja, Purpura, Cyan y Blanco.
@@ -39,9 +39,12 @@ function print_banner
 function show_help
 {
         echo -e "${colors[3]}Opciones disponibles:\n${colors[5]}"
+        echo -e "-a\tVerifica una firma hash sha256. Ej: -a <archivo_con_firma> -f <archivo_firmado>"
+        echo -e "-b\tVerifica una firma hash sha512. Ej: -b <archivo_con_firma> -f <archivo_firmado>"
         echo -e "-c\tCifra un archivo o directorio."
         echo -e "-d\tDescifra un archivo."
-        echo -e "-f\tEspecifica el archivo o directorio a (des)cifrar. ${colors[0]}(Requerido)${colors[5]}"
+        echo -e "-f\tEspecifica el archivo o directorio a cifrar, descifrar o verificar firma hash. ${colors[0]}(Requerido)${colors[5]}"
+        echo -e "-g\tVerifica una firma GPG. Ej: -g <archivo_con_firma> -f <archivo_firmado>"
         echo -e "-h\tMuestra esta página de ayuda y sale."
         echo -e "-i\tMuestra información sobre el programa y sale."
         echo -e "-v\tMuestra información sobre cada paso que realiza."
@@ -73,7 +76,7 @@ function warning
 
 function confution
 {
-        echo -e "${colors[0]}$name: Ha decidio cifrar y descifrar a la vez. Sólo uno a la vez.${colors[6]}\n"
+        echo -e "${colors[0]}$name: $1${colors[6]}\n"
 }
 
 function error
@@ -104,7 +107,7 @@ function destroy_files
 {
         if [[ "$agreement" = "yes" || "$agreement" = "y" || "$agreement" = "s" || "$agreement" = "si" ]]; then
                 if [ "$verbose" = "yes" ]; then
-                        echo -e "\n${colors[4]}Destruyendo $2...${colors[6]}"
+                        echo -e "\n${colors[4]}Destruyendo $2 ...${colors[6]}"
                 fi
 
                 if [[ "$directory" = "yes" && "$2" != "Archivo comprimido" ]]; then
@@ -127,32 +130,149 @@ function destroy_files
         fi
 }
 
+# Primer parámetro: Archivo a verificar
+# Segundo parámetro: Algoritmo a verificar para escribir un mensaje es caso de error.
+function checks
+{
+        check="$(file "$1")"
+        check="${check:24:5}"
+
+        if [ "$check" != "ASCII" ]; then
+                echo -e "${colors[0]}$name: El archivo indicado para la suma de comprobación $2 no es válido.${colors[6]}\n"
+                exit 1
+        fi
+}
+
+function verify_sha256
+{
+        if [[ "$verbose" = "yes" || "$arg" = "yes" ]]; then
+                echo -e "${colors[4]}Verificando suma de comprobación: sha256...${colors[6]}"
+        fi
+
+        checks "$1" "sha256"
+
+        sha256="$(cat "$1")"
+        tmp="$(sha256sum "$2")"
+        tmp="${tmp:0:64}"
+
+        if [ "$sha256" != "$tmp" ]; then
+                echo -e "${colors[0]}Las sumas de comprobación sha256 no coinciden. ¡Cuidado!${colors[6]}\n"
+                exit 1
+        elif [[ "$verbose" = "yes" || "$arg" = "yes" ]]; then
+                echo -e "${colors[1]}¡Suma de comprobación sha256 verificada!${colors[6]}\n"
+        fi
+}
+
+function verify_sha512
+{
+        if [[ "$verbose" = "yes" || "$arg" = "yes" ]]; then
+                echo -e "${colors[4]}Verificando suma de comprobación: sha512...${colors[6]}"
+        fi
+
+        checks "$1" "sha512"
+
+        sha512="$(cat "$1")"
+        tmp="$(sha512sum "$2")"
+        tmp="${tmp:0:128}"
+
+        if [ "$sha512" != "$tmp" ]; then
+                echo -e "${colors[0]}Las sumas de comprobación sha512 no coincide. ¡Cuidado!${colors[6]}\n"
+                exit 1
+        elif [[ "$verbose" = "yes" || "$arg" = "yes" ]]; then
+                echo -e "${colors[1]}¡Suma de comprobación sha512 verificada!${colors[6]}\n"
+        fi
+}
+
+# Primer parámetro: Archivo con la firma.
+# Segundo parámetro: Archivo firmado.
+function verify_gpg
+{
+        if [[ "$verbose" = "yes" || "$arg" = "yes" ]]; then
+                echo -e "${colors[4]}Verificando firma GPG...${colors[6]}"
+        fi
+
+        gpg --verify "$1" "$2"
+
+        if [ $? -ne 0 ]; then
+                echo -e "${colors[0]}La firma GPG no coinciden. ¡Cuidado!${colors[6]}\n"
+                exit 1
+        elif [[ "$verbose" = "yes" || "$arg" = "yes" ]]; then
+                echo -e "${colors[1]}¡Firma GPG verificada!${colors[6]}\n"
+        fi
+}
+
 clear
 print_banner
 
-while getopts "cdf:hivy" opt; do
+while getopts "a:b:cdf:g:hivy" opt; do
         case "$opt" in
+                a)
+                        if [ -z "$hash256" ]; then
+                                if [[ -n "$decrypt" || -n "$crypt" ]]; then
+                                        confution "Ha decidido descifrar y verificar firma hash sha256. Sólo puede utilizar uno a la vez."
+                                        exit 1
+                                fi
+
+                                if [ -f "$OPTARG" ]; then
+                                        file256="$OPTARG"
+                                else
+                                        echo -e "${colors[0]}$name: El archivo ${colors[2]}[$OPTARG]${colors[0]} no existe.${colors[6]}\n"
+                                        exit 1
+                                fi
+                                hash256="yes"
+                                arg="yes"
+                        else
+                                warning "Verificación de firma hash sha256"
+                        fi
+                        ;;
+                b)
+                        if [ -z "$hash512" ]; then
+                                if [[ -n "$decrypt" || -n "$crypt" ]]; then
+                                        confution "Ha decidido descifrar y verificar firma hash sha512. Sólo puede utilizar uno a la vez."
+                                        exit 1
+                                fi
+
+                                if [ -f "$OPTARG" ]; then
+                                        file512="$OPTARG"
+                                else
+                                        echo -e "${colors[0]}$name: El archivo ${colors[2]}[$OPTARG]${colors[0]} no existe.${colors[6]}\n"
+                                        exit 1
+                                fi
+                                hash512="yes"
+                                arg="yes"
+                        else
+                                warning "Verificación de firma hash sha512"
+                        fi
+                        ;;
                 c)
                         if [ -z "$decrypt" ]; then
-                                if [ -z "$crypt" ]; then
-                                        crypt="yes"
-                                else
+                                if [ -n "$crypt" ]; then
                                         warning "Cifrado"
+                                else
+                                        if [[ -n "$hash256" || -n "$hash512" ]]; then
+                                                confution "Ha decidido cifrar y verificar firma hash. Sólo puede utilizar uno."
+                                                exit 1
+                                        fi
+                                        crypt="yes"
                                 fi
                         else
-                                confution
+                                confution "Ha decido cifrar y descifrar a la vez. Sólo puede utilizar uno."
                                 exit 1
                         fi
                         ;;
                 d)
                         if [ -z "$crypt" ]; then
-                                if [ -z "$decrypt" ]; then
-                                        decrypt="yes"
-                                else
+                                if [ -n "$decrypt" ]; then
                                         warning "Descifrado"
+                                else
+                                        if [[ -n "$hash256" || -n "$hash512" ]]; then
+                                                confution "Ha decidido descifrar y verificar firma hash a la vez. Sólo puede utilizar uno."
+                                                exit 1
+                                        fi
+                                        decrypt="yes"
                                 fi
                         else
-                                confution
+                                confution "Ha decidido cifrar y descifrar a la vez. Sólo puede utilizar uno."
                                 exit 1
                         fi
                         ;;
@@ -165,14 +285,33 @@ while getopts "cdf:hivy" opt; do
                                         fi
                                         directory="yes"
                                 else
-                                        echo -e "${colors[0]}$name: No se puede acceder a: $OPTARG${colors[6]}\n"
+                                        echo -e "${colors[0]}$name: No se puede acceder a: ${colors[2]}[$OPTARG]${colors[6]}\n"
                                         exit 1
                                 fi
                         elif [ -f "$OPTARG" ]; then
                                 file="$OPTARG"
                         else
-                                echo -e "${colors[0]}$name: El archivo: \"$OPTARG\" no existe.${colors[6]}\n"
+                                echo -e "${colors[0]}$name: El archivo: ${colors[2]}[$OPTARG]${colors[0]} no existe.${colors[6]}\n"
                                 exit 1
+                        fi
+                        ;;
+                g)
+                        if [ -z "$sig_gpg" ]; then
+                                if [[ -n "$decrypt" || -n "$crypt" ]]; then
+                                        confution "Ha decidido descifrar y verificar firma hash sha256. Sólo puede utilizar uno a la vez."
+                                        exit 1
+                                fi
+
+                                if [ -f "$OPTARG" ]; then
+                                        filegpg="$OPTARG"
+                                else
+                                        echo -e "${colors[0]}$name: El archivo ${colors[2]}[$OPTARG]${colors[0]} no existe.${colors[6]}\n"
+                                        exit 1
+                                fi
+                                sig_gpg="yes"
+                                arg="yes"
+                        else
+                                warning "Verificación de firma GPG"
                         fi
                         ;;
                 h)
@@ -199,27 +338,39 @@ while getopts "cdf:hivy" opt; do
                         fi
                         ;;
                 \?)
-                        echo -e "${colors[0]}Opción desconocida.\n"
+                        echo -e "${colors[0]}Opción desconocida.${colors[6]}\n"
                         exit 1
                         ;;
         esac
 done
 
-if [[ -z "$crypt" && -z "$decrypt" ]]; then
+if [[ -z "$crypt" && -z "$decrypt" && -z "$hash256" && -z "$hash512" && -z "$sig_gpg" ]]; then
         echo -e "${colors[0]}$name: ¿Qué desea hacer? Puede utilizar la opción: -h para obtener ayuda.${colors[6]}\n"
         exit 1
 fi
 
 if [ -z "$file" ]; then
-        echo -e "${colors[0]}$name: No especificó archivo o directorio a (des)cifrar.${colors[6]}\n"
+        echo -e "${colors[0]}$name: No especificó archivo o directorio a cifrar, descifrar o verificar firma hash.${colors[6]}\n"
         exit 1
+fi
+
+if [ "$hash256" = "yes" ]; then
+        verify_sha256 "$file256" "$file"
+fi
+
+if [ "$hash512" = "yes" ]; then
+        verify_sha512 "$file512" "$file"
+fi
+
+if [ "$sig_gpg" = "yes" ]; then
+        verify_gpg "$filegpg" "$file"
 fi
 
 if [ "$crypt" = "yes" ]; then
         name_zip="$file.zip"
 
         if [ "$verbose" = "yes" ]; then
-                echo -e "${colors[4]}Comprimiendo: ${colors[2]}\"$file\" ${colors[4]}...${colors[6]}"
+                echo -e "${colors[4]}Comprimiendo: ${colors[2]}[$file] ${colors[4]}...${colors[6]}"
         fi
 
         if [ -n "$directory" ]; then
@@ -229,17 +380,17 @@ if [ "$crypt" = "yes" ]; then
         fi
 
         if [ $? -ne 0 ]; then
-                error "la compresión de: ${colors[2]}\"$file\""
+                error "la compresión de: ${colors[2]}[$file]"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
-                echo -e "${colors[1]}¡Compresión de: ${colors[2]}\"$file\" ${colors[1]}completada con éxito!${colors[6]}"
+                echo -e "${colors[1]}¡Compresión de: ${colors[2]}[$file] ${colors[1]}completada con éxito!${colors[6]}"
                 echo -e "\n${colors[4]}Cifrando...${colors[6]}"
         fi
 
         name_gpg="$name_zip.gpg"
         gpg -o "$name_gpg" -c "$name_zip"
         if [ $? -ne 0 ]; then
-                error "el cifrado de: $name_zip"
+                error "el cifrado de: [$name_zip]"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
                 echo -e "${colors[1]}¡Cifrado finalizado!${colors[6]}"
@@ -285,59 +436,26 @@ if [ "$crypt" = "yes" ]; then
                 ask_agreement "\n¿Desea eliminar el archivo comprimido? [S/n] (Sí por defecto): "
         fi
 
-        destroy_files "$name_zip" "Archivo comprimido" "la destrucción del archivo comprimido."
+        destroy_files "$name_zip" "Archivo(s) comprimido" "la destrucción de (los) archivo(s) comprimido."
 
         if [ -z "$agreement" ]; then
                 ask_agreement "\n¿Desea eliminar el(los) archivo(s) fuente de cifrado? [S/n] (Sí por defecto): "
         fi
 
-        destroy_files "$file" "Fichero(s) fuente de cifrado" "la destrucción del(los) fichero(s) fuente de cifrado."
+        destroy_files "$file" "Archivo(s) fuente de cifrado" "la destrucción del(los) archivo(s) fuente de cifrado."
 
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
 
 elif [ "$decrypt" = "yes" ]; then
-        if [ "$verbose" = "yes" ]; then
-                echo -e "${colors[4]}Verificando suma de comprobación: sha256...${colors[6]}"
-        fi
+        verify_sha256 "$file"
+        verify_sha512 "$file"
+        verify_gpg "$file.asc" "$file"
 
-        sha256="$(cat "$file.sha256sum")"
-        tmp="$(sha256sum "$file")"
-        tmp="${sha256:0:64}"
-
-        if [ "$sha256" != "$tmp" ]; then
-                echo -e "${colors[0]}Las sumas de comprobación sha256 no coinciden. ¡Cuidado!${colors[6]}\n"
-                exit 1
-        elif [ "$verbose" = "yes" ]; then
-                echo -e "${colors[1]}¡Suma de comprobación sha256 verificada!${colors[6]}"
-                echo -e "\n${colors[4]}Verificando suma de comprobación: sha512...${colors[6]}"
-        fi
-
-        sha512="$(cat "$file.sha512sum")"
-        tmp="$(sha512sum "$file")"
-        tmp="${tmp:0:128}"
-
-        if [ "$sha512" != "$tmp" ]; then
-                echo -e "${colors[0]}Las sumas de comprobación sha512 no coincide. ¡Cuidado!${colors[6]}\n"
-                exit 1
-        elif [ "$verbose" = "yes" ]; then
-                echo -e "${colors[1]}¡Suma de comprobación sha512 verificada!${colors[6]}"
-                echo -e "\n${colors[4]}Verificando firma GPG...${colors[6]}"
-        fi
-
-        gpg --verify "$file.asc" "$file"
-
-        if [ $? -ne 0 ]; then
-                echo -e "${colors[0]}La firma GPG no coinciden. ¡Cuidado!${colors[6]}\n"
-                exit 1
-        elif [ "$verbose" = "yes" ]; then
-                echo -e "${colors[1]}¡Firma GPG verificada!${colors[6]}"
-                echo -e "\n${colors[4]}Descifrando...${colors[6]}"
-        fi
-
+        echo -e "\n${colors[4]}Descifrando...${colors[6]}"
         gpg -o "${file:0:${#file}-4}" -d "$file"
 
         if [ $? -ne 0 ]; then
-                error "el descifrado de: \"$file\""
+                error "el descifrado de: ${colors[2]}[$file]"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
                 echo -e "${colors[1]}¡Descifrado exitoso!${colors[6]}"
@@ -348,7 +466,7 @@ elif [ "$decrypt" = "yes" ]; then
         unzip -q "$name_zip"
 
         if [ $? -ne 0 ]; then
-                error "la descompresión de: ${colors[3]}\"$name_zip\""
+                error "la descompresión de: ${colors[2]}[$name_zip]"
                 exit 1
         elif [ "$verbose" = "yes" ]; then
                 echo -e "${colors[1]}¡Descompresión exitosa!${colors[6]}"
@@ -358,8 +476,9 @@ elif [ "$decrypt" = "yes" ]; then
                 ask_agreement
         fi
 
-        destroy_files "$name_zip" "archivo comprimido" "la destrucción del archivo comprimido"
+        destroy_files "$name_zip" "Archivo(s) comprimido" "la destrucción del(los) archivo(s) comprimido(s)"
 
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
 fi
 
+exit 0
