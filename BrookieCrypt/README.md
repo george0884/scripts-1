@@ -43,6 +43,7 @@ GNU Core Utils
 ```
 
 **Ejemplos de uso:**
+
 ![](screenshots/sha256.png)
 ![](screenshots/sha256_2.png)
 ![](screenshots/decrypt.png)

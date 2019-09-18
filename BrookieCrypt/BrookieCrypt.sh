@@ -447,8 +447,8 @@ if [ "$crypt" = "yes" ]; then
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
 
 elif [ "$decrypt" = "yes" ]; then
-        verify_sha256 "$file"
-        verify_sha512 "$file"
+        verify_sha256 "$file.sha256sum" "$file"
+        verify_sha512 "$file.sha512sum" "$file"
         verify_gpg "$file.asc" "$file"
 
         echo -e "\n${colors[4]}Descifrando...${colors[6]}"
