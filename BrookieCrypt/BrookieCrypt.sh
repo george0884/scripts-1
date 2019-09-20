@@ -135,7 +135,6 @@ function destroy_files
 function checks
 {
         check="$(file "$1")"
-        #check="${check:24:5}"
 	check="${check:$((${#1}+2)):5}"
 
         if [ "$check" != "ASCII" ]; then
@@ -448,11 +447,11 @@ if [ "$crypt" = "yes" ]; then
         echo -e "\n${colors[4]}¡Trabajo finalizado!${colors[6]}\n"
 
 elif [ "$decrypt" = "yes" ]; then
-        verify_sha256 "$file"
-        verify_sha512 "$file"
+        verify_sha256 "$file.sha256sum" "$file"
+        verify_sha512 "$file.sha512sum" "$file"
         verify_gpg "$file.asc" "$file"
 
-        echo -e "\n${colors[4]}Descifrando...${colors[6]}"
+        echo -e "${colors[4]}Descifrando...${colors[6]}"
         gpg -o "${file:0:${#file}-4}" -d "$file"
 
         if [ $? -ne 0 ]; then
